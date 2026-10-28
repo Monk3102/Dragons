@@ -1,0 +1,6 @@
+{
+  "name": "Draco Animi - Surreal 3D Space",
+  "description": "An atmospheric, surreal 3D space where personal problems manifest as monumental floating dragons.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
