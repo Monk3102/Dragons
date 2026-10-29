@@ -2,12 +2,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Default deny catch-all
+    // Default deny all access globally
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Helper functions
+    // Hardened Global Helpers
     function isSignedIn() {
       return request.auth != null;
     }
@@ -28,14 +28,14 @@ service cloud.firestore {
       return resource.data;
     }
 
-    // Entity Validators
+    // Entity Validation Blueprint
     function isValidUser(data) {
       return data.keys().hasAll(['uid', 'email']) &&
         data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'createdAt']) &&
         data.uid is string && data.uid == request.auth.uid &&
         data.email is string && data.email.size() <= 256 &&
-        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128)) &&
-        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 512)) &&
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 256)) &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 2048)) &&
         (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
     }
 
@@ -45,7 +45,7 @@ service cloud.firestore {
         data.id is string && data.id.size() <= 128 &&
         data.userId is string && data.userId == request.auth.uid &&
         data.dragonId is string && data.dragonId.size() <= 64 &&
-        data.text is string && data.text.size() <= 5000 &&
+        data.text is string && data.text.size() <= 10000 &&
         data.status in ['Formidable', 'Acknowledged', 'Weakened', 'Transmuted'] &&
         (!('dragonName' in data) || (data.dragonName is string && data.dragonName.size() <= 128)) &&
         (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64)) &&
@@ -58,32 +58,32 @@ service cloud.firestore {
         data.id is string && data.id.size() <= 128 &&
         data.userId is string && data.userId == request.auth.uid &&
         data.role in ['user', 'model', 'system'] &&
-        data.content is string && data.content.size() <= 8000 &&
+        data.content is string && data.content.size() <= 15000 &&
         (!('dragonId' in data) || (data.dragonId is string && data.dragonId.size() <= 64)) &&
         (!('modelUsed' in data) || (data.modelUsed is string && data.modelUsed.size() <= 64)) &&
         (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64));
     }
 
-    // User Profile
+    // User Profile Document - Strict Owner Only
     match /users/{userId} {
       allow get: if isOwner(userId) && isValidId(userId);
-      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming());
-      allow update: if isOwner(userId) && isValidId(userId) && isValidUser(incoming()) && incoming().uid == existing().uid;
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming()) && incoming().uid == userId;
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUser(incoming()) && incoming().uid == existing().uid && incoming().uid == userId;
       allow delete: if isOwner(userId) && isValidId(userId);
 
-      // Confrontation Notes Subcollection
+      // Confrontation Notes Subcollection - Strict Owner Only
       match /notes/{noteId} {
         allow get, list: if isOwner(userId) && isValidId(userId);
-        allow create: if isOwner(userId) && isValidId(userId) && isValidId(noteId) && isValidNote(incoming());
-        allow update: if isOwner(userId) && isValidId(userId) && isValidId(noteId) && isValidNote(incoming()) && incoming().userId == existing().userId;
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(noteId) && isValidNote(incoming()) && incoming().id == noteId && incoming().userId == userId;
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(noteId) && isValidNote(incoming()) && incoming().id == noteId && incoming().userId == existing().userId && incoming().userId == userId;
         allow delete: if isOwner(userId) && isValidId(userId) && isValidId(noteId);
       }
 
-      // Chat Messages Subcollection
+      // Chat Messages Subcollection - Strict Owner Only
       match /chats/{chatId} {
         allow get, list: if isOwner(userId) && isValidId(userId);
-        allow create: if isOwner(userId) && isValidId(userId) && isValidId(chatId) && isValidChatMessage(incoming());
-        allow update: if isOwner(userId) && isValidId(userId) && isValidId(chatId) && isValidChatMessage(incoming()) && incoming().userId == existing().userId;
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(chatId) && isValidChatMessage(incoming()) && incoming().id == chatId && incoming().userId == userId;
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(chatId) && isValidChatMessage(incoming()) && incoming().id == chatId && incoming().userId == existing().userId && incoming().userId == userId;
         allow delete: if isOwner(userId) && isValidId(userId) && isValidId(chatId);
       }
     }

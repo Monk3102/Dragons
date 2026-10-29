@@ -7,8 +7,8 @@
       "properties": {
         "uid": { "type": "string", "maxLength": 128 },
         "email": { "type": "string", "maxLength": 256 },
-        "displayName": { "type": "string", "maxLength": 128 },
-        "photoURL": { "type": "string", "maxLength": 512 },
+        "displayName": { "type": "string", "maxLength": 256 },
+        "photoURL": { "type": "string", "maxLength": 2048 },
         "createdAt": { "type": "string", "maxLength": 64 }
       },
       "required": ["uid", "email"]
@@ -22,7 +22,7 @@
         "userId": { "type": "string", "maxLength": 128 },
         "dragonId": { "type": "string", "maxLength": 64 },
         "dragonName": { "type": "string", "maxLength": 128 },
-        "text": { "type": "string", "maxLength": 5000 },
+        "text": { "type": "string", "maxLength": 10000 },
         "status": { "type": "string", "enum": ["Formidable", "Acknowledged", "Weakened", "Transmuted"] },
         "createdAt": { "type": "string", "maxLength": 64 },
         "updatedAt": { "type": "string", "maxLength": 64 }
@@ -38,7 +38,7 @@
         "userId": { "type": "string", "maxLength": 128 },
         "dragonId": { "type": "string", "maxLength": 64 },
         "role": { "type": "string", "enum": ["user", "model", "system"] },
-        "content": { "type": "string", "maxLength": 8000 },
+        "content": { "type": "string", "maxLength": 15000 },
         "modelUsed": { "type": "string", "maxLength": 64 },
         "createdAt": { "type": "string", "maxLength": 64 }
       },

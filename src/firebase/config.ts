@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, User as FirebaseUser } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
@@ -36,9 +36,16 @@ export interface FirestoreErrorInfo {
   };
 }
 
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): void {
+  const rawMsg = error instanceof Error ? error.message : String(error);
+  const errorCode = (error as { code?: string })?.code || '';
+  const isPermission =
+    errorCode === 'permission-denied' ||
+    rawMsg.toLowerCase().includes('missing or insufficient permissions') ||
+    rawMsg.toLowerCase().includes('permission-denied');
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: rawMsg,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -54,20 +61,13 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path,
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
 
-// Connection test on boot
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Firebase client appears offline or connecting.');
-    }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+
+  // Only throw diagnostic JSON for security rule / permission failures
+  if (isPermission) {
+    throw new Error(JSON.stringify(errInfo));
   }
 }
-testConnection();
 
 export { firebaseSignOut, signInWithPopup, type FirebaseUser };

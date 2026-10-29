@@ -3,8 +3,8 @@ import { Volume2, VolumeX, MessageSquare, LogIn, LogOut, User } from 'lucide-rea
 import { FirebaseUser } from '../firebase/config';
 
 interface NavigationProps {
-  activeSection: 'world' | 'codex';
-  onSelectSection: (section: 'world' | 'codex') => void;
+  activeSection: 'world' | 'explore' | 'codex';
+  onSelectSection: (section: 'world' | 'explore' | 'codex') => void;
   audioActive: boolean;
   onToggleAudio: () => void;
   selectedDragonName: string | null;
@@ -60,6 +60,17 @@ export const Navigation: React.FC<NavigationProps> = ({
             }`}
           >
             World Space
+          </button>
+
+          <button
+            onClick={() => onSelectSection('explore')}
+            className={`transition-colors whitespace-nowrap pb-0.5 border-b cursor-pointer ${
+              activeSection === 'explore'
+                ? 'text-amber-200 border-amber-300'
+                : 'text-slate-400 border-transparent hover:text-amber-200/80'
+            }`}
+          >
+            Explore Bestiary
           </button>
 
           <button
