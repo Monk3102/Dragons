@@ -14,6 +14,7 @@ interface SceneProps {
   onDeselectDragon: () => void;
   cameraPreset: 'overview' | 'hero' | 'inspect' | null;
   onClearPreset: () => void;
+  isActive?: boolean;
 }
 
 export const Scene: React.FC<SceneProps> = ({
@@ -23,12 +24,14 @@ export const Scene: React.FC<SceneProps> = ({
   onDeselectDragon,
   cameraPreset,
   onClearPreset,
+  isActive = true,
 }) => {
   const selectedDragon = dragons.find((d) => d.id === selectedDragonId) || null;
 
   return (
     <div className="absolute inset-0 w-full h-full bg-[#07090e] overflow-hidden select-none">
       <Canvas
+        frameloop={isActive ? 'always' : 'never'}
         shadows
         gl={{
           antialias: true,

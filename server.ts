@@ -10,13 +10,31 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
+// AI Studio requirement: Dev server must run on port 3000 on 0.0.0.0.
+// In Cloud Run containers, process.env.PORT is 8080 (already bound by supervisor),
+// so defaulting or pinning to 3000 prevents EADDRINUSE errors.
+function resolvePort(): number {
+  const portArgIdx = process.argv.indexOf('--port');
+  if (portArgIdx !== -1 && process.argv[portArgIdx + 1]) {
+    const parsed = parseInt(process.argv[portArgIdx + 1], 10);
+    if (!isNaN(parsed)) return parsed;
+  }
+  return 3000;
+}
+
+const PORT = resolvePort();
 
 // Enforce request body size limit to prevent Denial-of-Service
 app.use(express.json({ limit: '256kb' }));
 
 // Allowed and verified Gemini API model aliases
-const ALLOWED_MODELS = new Set(['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-4-argon']);
+const ALLOWED_MODELS = new Set([
+  'gemini-3.1-flash-lite',
+  'gemini-flash-latest',
+  'gemini-3.8-flash',
+  'gemini-4-argon',
+]);
 
 // Initialize Google Gen AI client with required User-Agent
 const apiKey = process.env.GEMINI_API_KEY;
@@ -42,7 +60,7 @@ app.post('/api/gemini/chat', async (req, res) => {
       });
     }
 
-    const { messages, systemInstruction, model = 'gemini-3.8-flash' } = req.body;
+    const { messages, systemInstruction, model = 'gemini-3.1-flash-lite' } = req.body;
 
     // 1. Validate messages array structure & bounds
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -54,7 +72,7 @@ app.post('/api/gemini/chat', async (req, res) => {
     }
 
     // 2. Validate selected model
-    const selectedModel = ALLOWED_MODELS.has(model) ? model : 'gemini-3.8-flash';
+    const requestedModel = ALLOWED_MODELS.has(model) ? model : 'gemini-3.1-flash-lite';
 
     // 3. Validate and sanitize individual messages
     let totalLength = 0;
@@ -93,18 +111,47 @@ app.post('/api/gemini/chat', async (req, res) => {
       cleanSystemInstruction = systemInstruction.trim().slice(0, 4000);
     }
 
-    // 5. Query Gemini API
-    const response = await ai.models.generateContent({
-      model: selectedModel,
-      contents: sanitizedContents,
-      config: {
-        systemInstruction: cleanSystemInstruction,
-        temperature: 0.7,
-      },
-    });
+    // 5. Query Gemini API with automated fallback on high demand spikes (503 / 429)
+    const fallbackChain = [requestedModel];
+    if (!fallbackChain.includes('gemini-3.1-flash-lite')) fallbackChain.push('gemini-3.1-flash-lite');
+    if (!fallbackChain.includes('gemini-flash-latest')) fallbackChain.push('gemini-flash-latest');
+    if (!fallbackChain.includes('gemini-3.8-flash')) fallbackChain.push('gemini-3.8-flash');
 
-    const replyText = response.text || '...';
-    res.json({ reply: replyText, modelUsed: selectedModel });
+    let replyText = '';
+    let usedModel = requestedModel;
+    let lastError: unknown = null;
+
+    for (const tryModel of fallbackChain) {
+      try {
+        const response = await ai.models.generateContent({
+          model: tryModel,
+          contents: sanitizedContents,
+          config: {
+            systemInstruction: cleanSystemInstruction,
+            temperature: 0.7,
+          },
+        });
+
+        replyText = response.text || '...';
+        usedModel = tryModel;
+        lastError = null;
+        break;
+      } catch (err: unknown) {
+        lastError = err;
+        console.warn(`[Gemini API] Model ${tryModel} failed, trying fallback:`, err instanceof Error ? err.message : err);
+        const errMsg = err instanceof Error ? err.message : '';
+        const isTransient = errMsg.includes('503') || errMsg.includes('high demand') || errMsg.includes('429') || errMsg.includes('UNAVAILABLE');
+        if (!isTransient) {
+          break;
+        }
+      }
+    }
+
+    if (lastError && !replyText) {
+      throw lastError;
+    }
+
+    res.json({ reply: replyText, modelUsed: usedModel });
   } catch (error: unknown) {
     // Log complete error internally on the server (without leaking to client)
     console.error('Gemini Internal Error:', error);
@@ -117,6 +164,8 @@ app.post('/api/gemini/chat', async (req, res) => {
       clientMessage = 'The configured GEMINI_API_KEY was rejected by Google AI services.';
     } else if (rawMsg.includes('Quota exceeded') || rawMsg.includes('RESOURCE_EXHAUSTED')) {
       clientMessage = 'Gemini API quota exceeded for the current period. Please wait a moment.';
+    } else if (rawMsg.includes('high demand') || rawMsg.includes('UNAVAILABLE')) {
+      clientMessage = 'The AI service is experiencing high global traffic. Please retry in a few moments.';
     }
 
     res.status(500).json({ error: clientMessage });
@@ -130,7 +179,10 @@ async function startServer() {
   if (!isProd) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: process.env.DISABLE_HMR === 'true' ? false : undefined,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -141,8 +193,16 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server listening on port ${PORT}`);
+  });
+
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`[Server] Port ${PORT} already in use.`);
+    } else {
+      console.error('[Server] Listener error:', err);
+    }
   });
 }
 

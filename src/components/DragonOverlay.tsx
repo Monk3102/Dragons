@@ -1,17 +1,15 @@
 import React from 'react';
 import { DragonProblem } from '../types';
-import { ArrowLeft, MessageSquare, X } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 
 interface DragonOverlayProps {
   dragon: DragonProblem;
   onClose: () => void;
-  onConfrontWithGemini?: () => void;
 }
 
 export const DragonOverlay: React.FC<DragonOverlayProps> = ({
   dragon,
   onClose,
-  onConfrontWithGemini,
 }) => {
   return (
     <div className="fixed bottom-6 right-6 md:right-8 w-full max-w-md pointer-events-auto z-30 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -86,20 +84,10 @@ export const DragonOverlay: React.FC<DragonOverlayProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-3">
-          {onConfrontWithGemini && (
-            <button
-              onClick={onConfrontWithGemini}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-colors cursor-pointer"
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Confront with Gemini</span>
-            </button>
-          )}
-
+        <div className="pt-3 border-t border-white/10 flex items-center justify-end">
           <button
             onClick={onClose}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors cursor-pointer ml-auto"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Return to World</span>

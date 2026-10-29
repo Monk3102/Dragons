@@ -78,6 +78,30 @@ export interface DragonProblem extends MonsterRecord {
   bobbingAmplitude: number;
 }
 
+export type NoteStatus = 'Formidable' | 'Acknowledged' | 'Weakened' | 'Transmuted';
+export type MonsterStatus = 'Formidable' | 'Resting' | 'Acknowledged' | 'Under Inspection';
+
+export interface ConfrontationNoteItem {
+  id: string;
+  userId: string;
+  dragonId: string;
+  dragonName: string;
+  text: string;
+  status: NoteStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ChatMessageItem {
+  id: string;
+  userId?: string;
+  dragonId?: string;
+  role: 'user' | 'model';
+  content: string;
+  modelUsed?: string;
+  createdAt?: string;
+}
+
 export type ActiveView = 'world' | 'inspect' | 'notes';
 
 export interface CameraState {

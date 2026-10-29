@@ -1,18 +1,14 @@
 import React from 'react';
-import { Volume2, VolumeX, MessageSquare, LogIn, LogOut, User } from 'lucide-react';
-import { FirebaseUser } from '../firebase/config';
+import { Volume2, VolumeX, Database } from 'lucide-react';
 
 interface NavigationProps {
-  activeSection: 'world' | 'explore' | 'codex';
-  onSelectSection: (section: 'world' | 'explore' | 'codex') => void;
+  activeSection: 'world' | 'explore';
+  onSelectSection: (section: 'world' | 'explore') => void;
   audioActive: boolean;
   onToggleAudio: () => void;
   selectedDragonName: string | null;
   onReturnToWorld: () => void;
-  onOpenChat: () => void;
-  user: FirebaseUser | null;
-  onSignIn: () => void;
-  onSignOut: () => void;
+  onOpenBackup?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -22,15 +18,12 @@ export const Navigation: React.FC<NavigationProps> = ({
   onToggleAudio,
   selectedDragonName,
   onReturnToWorld,
-  onOpenChat,
-  user,
-  onSignIn,
-  onSignOut,
+  onOpenBackup,
 }) => {
   return (
-    <header className="fixed top-0 left-0 right-0 z-20 pointer-events-auto">
-      <div className="flex items-center justify-between gap-8 px-6 py-4 bg-gradient-to-b from-[#07090e]/95 via-[#07090e]/60 to-transparent">
-        {/* Zone 1: Single text element wordmark */}
+    <header className="fixed top-0 left-0 right-0 z-40 pointer-events-auto">
+      <div className="flex items-center justify-between gap-8 px-6 py-3.5 bg-gradient-to-b from-[#07090e]/95 via-[#07090e]/85 to-transparent backdrop-blur-sm border-b border-white/[0.06]">
+        {/* Zone 1: Wordmark */}
         <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={() => {
@@ -47,49 +40,51 @@ export const Navigation: React.FC<NavigationProps> = ({
         </div>
 
         {/* Zone 2: Navigation Links */}
-        <nav className="flex items-center gap-5 text-xs font-medium tracking-wider text-slate-400">
+        <nav className="flex items-center gap-3 text-xs font-medium tracking-wider text-slate-400">
           <button
             onClick={() => {
               onSelectSection('world');
               if (selectedDragonName) onReturnToWorld();
             }}
-            className={`transition-colors whitespace-nowrap pb-0.5 border-b cursor-pointer ${
+            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wider transition-all duration-300 cursor-pointer ${
               activeSection === 'world' && !selectedDragonName
-                ? 'text-white border-white'
-                : 'text-slate-400 border-transparent hover:text-slate-200'
+                ? 'bg-white/10 text-white border border-white/20 shadow-sm'
+                : 'bg-transparent text-slate-400 border border-transparent hover:text-slate-200 hover:bg-white/[0.04]'
             }`}
           >
-            World Space
+            <span
+              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                activeSection === 'world' && !selectedDragonName
+                  ? 'bg-slate-200 shadow-[0_0_6px_rgba(255,255,255,0.6)]'
+                  : 'bg-slate-600'
+              }`}
+            />
+            <span>World Space</span>
           </button>
 
           <button
-            onClick={() => onSelectSection('explore')}
-            className={`transition-colors whitespace-nowrap pb-0.5 border-b cursor-pointer ${
+            onClick={() => onSelectSection(activeSection === 'explore' ? 'world' : 'explore')}
+            className={`group relative inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wider transition-all duration-300 cursor-pointer ${
               activeSection === 'explore'
-                ? 'text-amber-200 border-amber-300'
-                : 'text-slate-400 border-transparent hover:text-amber-200/80'
+                ? 'bg-amber-400/15 text-amber-200 border border-amber-400/50 shadow-[0_0_16px_rgba(251,191,36,0.22)]'
+                : 'bg-white/[0.03] text-slate-400 border border-white/10 hover:border-amber-300/40 hover:text-amber-200 hover:bg-white/[0.07]'
             }`}
+            aria-expanded={activeSection === 'explore'}
+            title="Toggle integrated Bestiary & Archetype exploration"
           >
-            Explore Bestiary
-          </button>
-
-          <button
-            onClick={() => onSelectSection('codex')}
-            className={`transition-colors whitespace-nowrap pb-0.5 border-b cursor-pointer ${
-              activeSection === 'codex'
-                ? 'text-white border-white'
-                : 'text-slate-400 border-transparent hover:text-slate-200'
-            }`}
-          >
-            Chronicle Notes
-          </button>
-
-          <button
-            onClick={onOpenChat}
-            className="flex items-center gap-1.5 transition-colors whitespace-nowrap text-amber-200/90 hover:text-amber-100 cursor-pointer"
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Counsel Oracle</span>
+            <span
+              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                activeSection === 'explore'
+                  ? 'bg-amber-400 shadow-[0_0_6px_#fbbf24] scale-110'
+                  : 'bg-slate-500 group-hover:bg-amber-300/70'
+              }`}
+            />
+            <span>Explore Bestiary</span>
+            {activeSection === 'explore' && (
+              <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 bg-amber-400/20 text-amber-300 rounded tracking-normal">
+                Open
+              </span>
+            )}
           </button>
 
           {selectedDragonName && (
@@ -102,8 +97,19 @@ export const Navigation: React.FC<NavigationProps> = ({
           )}
         </nav>
 
-        {/* Zone 3: Auth & Audio Control */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Zone 3: Local Data Backup & Audio Control */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {onOpenBackup && (
+            <button
+              onClick={onOpenBackup}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono rounded-lg border border-[#c5a059]/30 bg-[#c5a059]/10 hover:bg-[#c5a059]/25 text-amber-200 transition-all cursor-pointer shadow-sm"
+              title="Backup, export, or restore Draco Animi bestiary data (JSON)"
+            >
+              <Database className="w-3.5 h-3.5 text-amber-300" />
+              <span className="hidden sm:inline">Backup & Archive</span>
+            </button>
+          )}
+
           <button
             onClick={onToggleAudio}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
@@ -119,39 +125,6 @@ export const Navigation: React.FC<NavigationProps> = ({
               <VolumeX className="w-3.5 h-3.5 text-slate-500" />
             )}
           </button>
-
-          {user ? (
-            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1">
-              {user.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt={user.displayName || 'User'}
-                  className="w-5 h-5 rounded-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <User className="w-3.5 h-3.5 text-slate-400" />
-              )}
-              <span className="hidden sm:inline text-xs text-slate-200 max-w-[120px] truncate">
-                {user.displayName || user.email?.split('@')[0]}
-              </span>
-              <button
-                onClick={onSignOut}
-                className="text-slate-400 hover:text-white transition-colors p-1"
-                title="Sign Out"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={onSignIn}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 border border-white/15 rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              <LogIn className="w-3.5 h-3.5 text-amber-200" />
-              <span>Google Sign-In</span>
-            </button>
-          )}
         </div>
       </div>
     </header>
