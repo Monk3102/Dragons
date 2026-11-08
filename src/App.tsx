@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { INITIAL_DRAGONS } from './data/dragons';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DragonProblem } from './types';
 import { Scene } from './components/Scene';
 import { Navigation } from './components/Navigation';
@@ -7,21 +6,42 @@ import { Dock } from './components/Dock';
 import { DragonOverlay } from './components/DragonOverlay';
 import { voidAudio } from './utils/audioAmbience';
 import { BackupRestoreModal } from './components/BackupRestoreModal';
+import { useMonsters } from './store/monsterStore';
+import { layoutMonsters } from './scene/dialMapping';
+import { monsterToDragonProblem } from './scene/monsterVisuals';
 
 const ExploreView = React.lazy(() =>
   import('./components/ExploreView').then((m) => ({ default: m.ExploreView }))
 );
 
+// Dynamic import strictly in development mode for zero production bundle footprint
+const DevDialPanel = import.meta.env.DEV
+  ? React.lazy(new Function("return import('./components/DevDialPanel')") as any)
+  : null;
+
 export default function App() {
-  const [dragons] = useState<DragonProblem[]>(INITIAL_DRAGONS);
+  const { monsters } = useMonsters();
+
+  // Memoize whole 3D visual adapter keyed on the monsters array
+  const dragons = useMemo<DragonProblem[]>(() => {
+    const alive = monsters.filter((m) => m.status === 'alive');
+    const layout = layoutMonsters(alive);
+    return alive.map((m) => {
+      const pos = layout.get(m.id)!;
+      return monsterToDragonProblem(m, pos);
+    });
+  }, [monsters]);
+
   const [selectedDragonId, setSelectedDragonId] = useState<string | null>(null);
   const [cameraPreset, setCameraPreset] = useState<'overview' | 'hero' | 'inspect' | null>('overview');
   const [activeSection, setActiveSection] = useState<'world' | 'explore'>('world');
   const [audioActive, setAudioActive] = useState<boolean>(false);
   const [isDockCollapsed, setIsDockCollapsed] = useState<boolean>(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState<boolean>(false);
+  const [isDevPanelOpen, setIsDevPanelOpen] = useState<boolean>(false);
 
   const selectedDragon = dragons.find((d) => d.id === selectedDragonId) || null;
+  const selectedMonster = monsters.find((m) => m.id === selectedDragonId) || null;
 
   const handleSelectDragon = useCallback((id: string) => {
     setSelectedDragonId(id);
@@ -38,23 +58,26 @@ export default function App() {
     setAudioActive(isPlaying);
   }, []);
 
-  // Keyboard shortcuts (Escape for returning to world view / closing explore, H for Zen Mode)
+  // Keyboard shortcuts (Escape for world/explore, H for Dock, D for Dev Dial Panel)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const isTyping =
+        document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA' ||
+        (document.activeElement as HTMLElement)?.isContentEditable;
+
       if (e.key === 'Escape') {
         if (activeSection === 'explore') {
           setActiveSection('world');
         } else if (selectedDragonId) {
           handleDeselectDragon();
         }
-      } else if (e.key === 'h' || e.key === 'H') {
-        const isTyping =
-          document.activeElement?.tagName === 'INPUT' ||
-          document.activeElement?.tagName === 'TEXTAREA' ||
-          (document.activeElement as HTMLElement)?.isContentEditable;
-        if (!isTyping && activeSection !== 'explore') {
+      } else if ((e.key === 'h' || e.key === 'H') && !isTyping) {
+        if (activeSection !== 'explore') {
           setIsDockCollapsed((prev) => !prev);
         }
+      } else if ((e.key === 'd' || e.key === 'D') && !isTyping && import.meta.env.DEV) {
+        setIsDevPanelOpen((prev) => !prev);
       }
     };
 
@@ -86,10 +109,11 @@ export default function App() {
         onOpenBackup={() => setIsBackupModalOpen(true)}
       />
 
-      {/* Selected Dragon Detail Overlay */}
+      {/* Selected Dragon Detail Overlay with Dials block */}
       {selectedDragon && (
         <DragonOverlay
           dragon={selectedDragon}
+          monster={selectedMonster}
           onClose={handleDeselectDragon}
         />
       )}
@@ -120,6 +144,13 @@ export default function App() {
           initialSelectedId={selectedDragonId}
         />
       </React.Suspense>
+
+      {/* Developer Dial Panel (Loaded exclusively in development mode via 'D' key) */}
+      {import.meta.env.DEV && DevDialPanel && isDevPanelOpen && (
+        <React.Suspense fallback={null}>
+          <DevDialPanel onClose={() => setIsDevPanelOpen(false)} />
+        </React.Suspense>
+      )}
     </div>
   );
 }

@@ -6,12 +6,14 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { DragonProblem } from '../types';
 
 interface CameraControllerProps {
+  dragons?: DragonProblem[];
   selectedDragon: DragonProblem | null;
   cameraPreset: 'overview' | 'hero' | 'inspect' | null;
   onClearPreset: () => void;
 }
 
 export const CameraController: React.FC<CameraControllerProps> = ({
+  dragons = [],
   selectedDragon,
   cameraPreset,
   onClearPreset,
@@ -29,13 +31,12 @@ export const CameraController: React.FC<CameraControllerProps> = ({
     isTransitioning.current = true;
 
     if (selectedDragon) {
-      // Compute vantage point based on dragon scale & position
-      const offsetDist = Math.max(7, selectedDragon.scale * 3.8);
-      // Position camera slightly offset to side and in front of dragon
+      // Inspect preset: camera distance scales with the dragon's scale so big dragons are not cut off
+      const offsetDist = Math.max(8.5, selectedDragon.scale * 4.2);
       targetCameraPos.current.set(
-        selectedDragon.position[0] + (selectedDragon.position[0] >= 0 ? -offsetDist * 0.7 : offsetDist * 0.7),
-        selectedDragon.position[1] + offsetDist * 0.35,
-        selectedDragon.position[2] + offsetDist * 0.9
+        selectedDragon.position[0] + (selectedDragon.position[0] >= 0 ? -offsetDist * 0.65 : offsetDist * 0.65),
+        selectedDragon.position[1] + offsetDist * 0.32,
+        selectedDragon.position[2] + offsetDist * 0.95
       );
       targetLookAt.current.set(
         selectedDragon.position[0],
@@ -43,15 +44,39 @@ export const CameraController: React.FC<CameraControllerProps> = ({
         selectedDragon.position[2]
       );
     } else if (cameraPreset === 'hero') {
-      // Intimate, low-angle shot right behind the lone character looking up at the sky
+      // Hero preset: low-angle shot right behind the lone character looking up at the sky
       targetCameraPos.current.set(0, 1.4, 4.2);
       targetLookAt.current.set(0, 4.0, -10);
     } else {
-      // Default grand world overview
-      targetCameraPos.current.set(0, 9, 28);
-      targetLookAt.current.set(0, 2, 0);
+      // Overview preset: frame ALL alive monsters based on their farthest extents
+      if (dragons.length === 0) {
+        // With no monsters, use current default view
+        targetCameraPos.current.set(0, 9, 28);
+        targetLookAt.current.set(0, 2, 0);
+      } else {
+        let maxRadius = 0;
+        let maxY = 0;
+        let minZ = 0;
+
+        for (const d of dragons) {
+          const r = Math.sqrt(d.position[0] * d.position[0] + d.position[2] * d.position[2]) + d.scale * 2.2;
+          if (r > maxRadius) maxRadius = r;
+          const topY = d.position[1] + d.scale * 1.8;
+          if (topY > maxY) maxY = topY;
+          const backZ = d.position[2] - d.scale * 1.5;
+          if (backZ < minZ) minZ = backZ;
+        }
+
+        const camZ = Math.max(28, maxRadius * 0.68 + 14);
+        const camY = Math.max(9, maxY * 0.52 + 4);
+        const lookY = Math.max(2, maxY * 0.3);
+        const lookZ = Math.min(0, minZ * 0.25);
+
+        targetCameraPos.current.set(0, camY, camZ);
+        targetLookAt.current.set(0, lookY, lookZ);
+      }
     }
-  }, [selectedDragon, cameraPreset]);
+  }, [selectedDragon, cameraPreset, dragons]);
 
   // When the user actively drags or orbits, cancel scripted transition
   const handleStartInteraction = () => {
@@ -91,8 +116,8 @@ export const CameraController: React.FC<CameraControllerProps> = ({
       enableDamping
       dampingFactor={0.06}
       minDistance={2.5}
-      maxDistance={80}
-      maxPolarAngle={Math.PI / 2 + 0.1} // allow slight low angle looking upward
+      maxDistance={120}
+      maxPolarAngle={Math.PI / 2 + 0.1}
       onStart={handleStartInteraction}
     />
   );

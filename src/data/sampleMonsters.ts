@@ -1,0 +1,73 @@
+import { Monster } from '../types';
+
+export const SAMPLE_MONSTERS: Monster[] = [
+  {
+    id: 'dragon-inertia',
+    name: 'The Inertia Leviathan',
+    creatureTypeId: 'archetype-dragon',
+    problem: 'The Weight of Unbegun Work',
+    size: 8,
+    distance: 6,
+    ferocity: 6,
+    status: 'alive',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    isSample: true,
+    journey: [
+      {
+        id: 'spawn-dragon-inertia',
+        at: '2026-01-01T00:00:00.000Z',
+        kind: 'spawn',
+        size: 8,
+        distance: 6,
+        ferocity: 6,
+        note: 'Sample monster from the starting set.',
+      },
+    ],
+  },
+  {
+    id: 'dragon-cacophony',
+    name: 'The Cacophony',
+    creatureTypeId: 'archetype-dragon',
+    problem: 'The Spiral of Catastrophic Foresight',
+    size: 6,
+    distance: 3,
+    ferocity: 5,
+    status: 'alive',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    isSample: true,
+    journey: [
+      {
+        id: 'spawn-dragon-cacophony',
+        at: '2026-01-01T00:00:00.000Z',
+        kind: 'spawn',
+        size: 6,
+        distance: 3,
+        ferocity: 5,
+        note: 'Sample monster from the starting set.',
+      },
+    ],
+  },
+  {
+    id: 'dragon-tyrant',
+    name: 'The Tyrant of Perfection',
+    creatureTypeId: 'archetype-dragon',
+    problem: 'The Infallible Judge',
+    size: 9,
+    distance: 8,
+    ferocity: 8,
+    status: 'alive',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    isSample: true,
+    journey: [
+      {
+        id: 'spawn-dragon-tyrant',
+        at: '2026-01-01T00:00:00.000Z',
+        kind: 'spawn',
+        size: 9,
+        distance: 8,
+        ferocity: 8,
+        note: 'Sample monster from the starting set.',
+      },
+    ],
+  },
+];

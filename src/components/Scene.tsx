@@ -119,6 +119,7 @@ export const Scene: React.FC<SceneProps> = ({
 
         {/* Camera Orchestrator */}
         <CameraController
+          dragons={dragons}
           selectedDragon={selectedDragon}
           cameraPreset={cameraPreset}
           onClearPreset={onClearPreset}

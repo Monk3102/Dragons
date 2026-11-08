@@ -2,7 +2,8 @@ import React, { useState, useRef } from 'react';
 import { Download, Upload, ShieldCheck, AlertTriangle, X, CheckCircle, Database } from 'lucide-react';
 import { MonsterRecord } from '../types';
 import { getLocalBestiaryRecords, saveLocalBestiaryRecord, exportBestiaryToJson } from '../utils/localBestiary';
-import { validateBackupJson, applyBackupImport } from '../utils/localBackup';
+import { validateBackupJson, applyBackupImport, downloadCompleteBackup } from '../utils/localBackup';
+import { useMonsters } from '../store/monsterStore';
 
 interface BackupRestoreModalProps {
   isOpen: boolean;
@@ -15,9 +16,11 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
   onClose,
   onRestoreBestiary,
 }) => {
+  const { monsters, replaceAll } = useMonsters();
   const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge');
   const [validationSummary, setValidationSummary] = useState<{
     bestiaryCount: number;
+    monsterCount: number;
     rawPayload: any;
   } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -30,7 +33,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
   const localBestiary = getLocalBestiaryRecords();
 
   const handleExport = () => {
-    exportBestiaryToJson();
+    downloadCompleteBackup([], [], undefined, monsters);
     setSuccessMessage('Bestiary archive JSON successfully downloaded to your device.');
     setTimeout(() => setSuccessMessage(null), 4000);
   };
@@ -53,6 +56,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
       } else {
         setValidationSummary({
           bestiaryCount: result.payload.userBestiaryRecords.length,
+          monsterCount: result.payload.monsters?.length || 0,
           rawPayload: result.payload,
         });
       }
@@ -65,22 +69,24 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
     if (!validationSummary) return;
 
     try {
-      const { mergedBestiary } = applyBackupImport(
+      const { mergedBestiary, mergedMonsters } = applyBackupImport(
         validationSummary.rawPayload,
         {
           bestiary: localBestiary,
           notes: [],
           chats: [],
+          monsters,
         },
         importMode
       );
 
       // Save merged records to local storage
       mergedBestiary.forEach((rec) => saveLocalBestiaryRecord(rec));
+      replaceAll(mergedMonsters);
       if (onRestoreBestiary) onRestoreBestiary();
 
       setSuccessMessage(
-        `Successfully restored ${mergedBestiary.length} custom creature dossiers.`
+        `Successfully restored ${mergedBestiary.length} custom creature dossiers and ${mergedMonsters.length} monsters.`
       );
       setValidationSummary(null);
       setTimeout(() => {
@@ -182,7 +188,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
                     <span>Valid Backup Verified</span>
                   </span>
                   <span className="text-[10px] text-slate-400">
-                    {validationSummary.bestiaryCount} Custom Records
+                    {validationSummary.bestiaryCount} Custom Records · {validationSummary.monsterCount} Monsters
                   </span>
                 </div>
 

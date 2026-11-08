@@ -109,3 +109,37 @@ export interface CameraState {
   target: [number, number, number];
 }
 
+/**
+ * Dial value representing a subjective psychological metric from 1 to 10:
+ * - size: 1 = tiny, 10 = huge.
+ * - distance: 1 = very near, 10 = very far (the user's gut feeling, not a deadline).
+ * - ferocity: 1 = mild, 10 = severe consequences.
+ */
+export type Dial = number;
+
+export interface JourneyEntry {
+  id: string;
+  at: string; // ISO string
+  kind: 'spawn' | 'change' | 'slain';
+  size: Dial;
+  distance: Dial;
+  ferocity: Dial;
+  note: string;
+}
+
+export interface Monster {
+  id: string;
+  name: string;
+  creatureTypeId: string; // an id from ARCHETYPE_CATALOGUE
+  problem: string; // what it represents
+  size: Dial;
+  distance: Dial;
+  ferocity: Dial;
+  status: 'alive' | 'slain';
+  createdAt: string; // ISO string
+  slainAt?: string; // ISO string
+  finalNote?: string;
+  isSample?: boolean;
+  journey: JourneyEntry[];
+}
+

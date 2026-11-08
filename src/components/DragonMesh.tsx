@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { DragonProblem } from '../types';
@@ -19,9 +19,21 @@ export const DragonMesh: React.FC<DragonMeshProps> = ({
   const rightWingRef = useRef<THREE.Group>(null);
   const tailGroupRef = useRef<THREE.Group>(null);
   const coreRef = useRef<THREE.Mesh>(null);
+  const pointLightRef = useRef<THREE.PointLight>(null);
   const [isHovered, setIsHovered] = useState(false);
 
-  // Reusable materials
+  // Animated refs for smooth damping transition over ~1s (lambda around 3)
+  const currentScale = useRef<number>(dragon.scale);
+  const currentPosX = useRef<number>(dragon.position[0]);
+  const currentPosY = useRef<number>(dragon.position[1]);
+  const currentPosZ = useRef<number>(dragon.position[2]);
+  const currentBobSpeed = useRef<number>(dragon.bobbingSpeed);
+  const currentBobAmp = useRef<number>(dragon.bobbingAmplitude);
+
+  const baseGlow = (dragon as any).coreGlowStrength ?? 1.6;
+  const currentGlowStrength = useRef<number>(baseGlow);
+
+  // Reusable materials memoized by monster ID so dial changes do not recreate them
   const bodyMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -30,7 +42,7 @@ export const DragonMesh: React.FC<DragonMeshProps> = ({
         metalness: dragon.metalness,
         flatShading: true,
       }),
-    [dragon.color, dragon.roughness, dragon.metalness]
+    [dragon.id]
   );
 
   const accentMaterial = useMemo(
@@ -41,7 +53,7 @@ export const DragonMesh: React.FC<DragonMeshProps> = ({
         metalness: Math.min(0.9, dragon.metalness + 0.2),
         flatShading: true,
       }),
-    [dragon.accentColor, dragon.roughness, dragon.metalness]
+    [dragon.id]
   );
 
   const coreMaterial = useMemo(
@@ -49,13 +61,19 @@ export const DragonMesh: React.FC<DragonMeshProps> = ({
       new THREE.MeshStandardMaterial({
         color: dragon.coreGlow,
         emissive: dragon.coreGlow,
-        emissiveIntensity: isSelected ? 3.5 : isHovered ? 2.5 : 1.6,
+        emissiveIntensity: baseGlow,
         roughness: 0.2,
       }),
-    [dragon.coreGlow, isSelected, isHovered]
+    [dragon.id]
   );
 
-  // Generate vertebrae/rib segments data once
+  // Update core colors dynamically on material instance without recreation
+  useEffect(() => {
+    coreMaterial.color.set(dragon.coreGlow);
+    coreMaterial.emissive.set(dragon.coreGlow);
+  }, [dragon.coreGlow, coreMaterial]);
+
+  // Generate vertebrae/rib segments data once per monster
   const spineSegments = useMemo(() => {
     return Array.from({ length: dragon.bodySegments }).map((_, i) => {
       const factor = (i + 1) / dragon.bodySegments;
@@ -64,28 +82,58 @@ export const DragonMesh: React.FC<DragonMeshProps> = ({
     });
   }, [dragon.bodySegments]);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!rootRef.current) return;
     const t = state.clock.getElapsedTime();
 
+    // Damping toward target values (lambda around 3 for ~1s transition)
+    const lambda = 3.0;
+    currentScale.current = THREE.MathUtils.damp(currentScale.current, dragon.scale, lambda, delta);
+    currentPosX.current = THREE.MathUtils.damp(currentPosX.current, dragon.position[0], lambda, delta);
+    currentPosY.current = THREE.MathUtils.damp(currentPosY.current, dragon.position[1], lambda, delta);
+    currentPosZ.current = THREE.MathUtils.damp(currentPosZ.current, dragon.position[2], lambda, delta);
+    currentBobSpeed.current = THREE.MathUtils.damp(currentBobSpeed.current, dragon.bobbingSpeed, lambda, delta);
+    currentBobAmp.current = THREE.MathUtils.damp(currentBobAmp.current, dragon.bobbingAmplitude, lambda, delta);
+
+    const glowMultiplier = isSelected ? 2.2 : isHovered ? 1.6 : 1.0;
+    const targetGlow = ((dragon as any).coreGlowStrength ?? 1.6) * glowMultiplier;
+    currentGlowStrength.current = THREE.MathUtils.damp(currentGlowStrength.current, targetGlow, lambda, delta);
+
+    // Apply animated scale
+    rootRef.current.scale.setScalar(currentScale.current);
+
     // Floating bobbing and subtle sway
-    const bob = Math.sin(t * dragon.bobbingSpeed) * dragon.bobbingAmplitude;
-    const sway = Math.cos(t * dragon.bobbingSpeed * 0.7) * 0.08;
-    rootRef.current.position.y = dragon.position[1] + bob;
-    rootRef.current.position.x = dragon.position[0] + Math.sin(t * 0.3) * 0.4;
-    rootRef.current.rotation.z = dragon.rotation[2] + sway;
-    rootRef.current.rotation.y = dragon.rotation[1] + Math.sin(t * 0.2) * 0.05;
+    const bob = Math.sin(t * currentBobSpeed.current) * currentBobAmp.current;
+    const sway = Math.cos(t * currentBobSpeed.current * 0.7) * 0.08;
+
+    rootRef.current.position.set(
+      currentPosX.current + Math.sin(t * 0.3) * 0.4,
+      currentPosY.current + bob,
+      currentPosZ.current
+    );
+    rootRef.current.rotation.set(
+      dragon.rotation[0],
+      dragon.rotation[1] + Math.sin(t * 0.2) * 0.05,
+      dragon.rotation[2] + sway
+    );
+
+    // Dynamic light & core emission updates
+    coreMaterial.emissiveIntensity = currentGlowStrength.current;
+    if (pointLightRef.current) {
+      pointLightRef.current.intensity = currentGlowStrength.current * 2.2;
+      pointLightRef.current.distance = currentScale.current * 6.5;
+    }
 
     // Wing flap oscillation
     if (leftWingRef.current && rightWingRef.current) {
-      const wingFlap = Math.sin(t * dragon.bobbingSpeed * 1.8) * 0.28;
+      const wingFlap = Math.sin(t * currentBobSpeed.current * 1.8) * 0.28;
       leftWingRef.current.rotation.z = 0.2 + wingFlap;
       rightWingRef.current.rotation.z = -0.2 - wingFlap;
     }
 
     // Tail undulating wave
     if (tailGroupRef.current) {
-      tailGroupRef.current.rotation.y = Math.sin(t * dragon.bobbingSpeed * 1.5) * 0.2;
+      tailGroupRef.current.rotation.y = Math.sin(t * currentBobSpeed.current * 1.5) * 0.2;
     }
 
     // Core pulsing glow
@@ -140,9 +188,10 @@ export const DragonMesh: React.FC<DragonMeshProps> = ({
 
       {/* Point light emitted from dragon's core to illuminate its own ribs and nearby fog */}
       <pointLight
+        ref={pointLightRef}
         color={dragon.coreGlow}
-        intensity={isSelected ? 6 : isHovered ? 4.5 : 2.5}
-        distance={dragon.scale * 6}
+        intensity={baseGlow * (isSelected ? 2.2 : isHovered ? 1.6 : 1.0) * 2.2}
+        distance={dragon.scale * 6.5}
         decay={2}
       />
 
