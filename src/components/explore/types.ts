@@ -1,7 +1,7 @@
 import { MonsterRecord, MonsterStatus } from '../../types';
 
 export type ExploreMode = 'creatures' | 'discover';
-export type FilterCategory = 'catalogue' | 'saved';
+export type FilterCategory = 'all' | 'catalogue' | 'foundational' | 'saved';
 
 export interface ExploreCreatureItem {
   id: string;
