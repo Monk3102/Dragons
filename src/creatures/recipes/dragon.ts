@@ -1,21 +1,45 @@
 import { CreatureRecipe, Part } from '../types';
-import { hornPair, limbPair } from '../helpers';
 
 /**
- * Dragon Recipe ('archetype-dragon')
- * Family: winged
+ * Dragon Anatomical Skeleton Plan
+ * =============================================================================
+ * Facing: +Z forward, +Y dorsal, +X lateral left, -X lateral right.
  * 
- * Monumental Western dragon leviathan:
- * - Body: Deep chest, narrower waist, strong hip (three overlapping ellipsoids) with glowing chest core.
- * - Neck: Tapering tube in an S-curve curving forward to the cranium, with blade dorsal spikes.
- * - Head: Wedge snout, lower jaw, brow ridges, nostril bumps, glowing eyes, sweeping horns, cheek spikes.
- * - Tail: Gentle S-curve tapering tube with spade-shaped tip and blade spines diminishing along length.
- * - Wings: Shoulder-to-wrist arm tube, three finger bone tubes, and aerodynamic membrane polygons.
- * - Legs: Folded front legs with blade claws; muscular rear legs with thigh bulge, bent hock, 3-blade feet.
- * - Ferocity (t = 0 to 1):
- *   - Mild (1-3): Smooth body, compact horns, 8 dorsal spikes, half-folded wings, subdued core glow.
- *   - Menacing (4-7): Lengthened horns, 16 dorsal spikes, open wings, heightened glow.
- *   - Ferocious (8-10): Quad horns, ~28 spikes, exposed jaw blade teeth, extended claws, brilliant core, fully spread wings.
+ * 1. Axial Spine Curve Control Points (Rostral Snout to Caudal Tip):
+ *   - Rostral Tip / Snout Apex:      [0.00,  1.48,  2.24]
+ *   - Cranial Core / Skull Center:   [0.00,  1.56,  1.70]
+ *   - Occipital Joint (C0):          [0.00,  1.45,  1.52]
+ *   - Mid-Cervical Arch (C2):        [0.00,  1.22,  1.22]
+ *   - Cervicothoracic Root (C4/T0):  [0.00,  0.86,  0.92]
+ *   - Anterior Thoracic (T1):        [0.00,  0.50,  0.65]
+ *   - Deepest Pectoral Crest (T3):   [0.00,  0.28,  0.22]
+ *   - Thoracolumbar Inflexion (L1):  [0.00,  0.18, -0.25]
+ *   - Lumbar Waist (L3):             [0.00,  0.14, -0.68]
+ *   - Sacral Pelvic Basin (S1):      [0.00,  0.12, -1.05]
+ *   - Caudal Base / Tail Root (Ca1): [0.00,  0.10, -1.45]
+ *   - Caudal S-Trough Ventral (Ca2): [0.00,  0.02, -2.05]
+ *   - Caudal S-Crest Dorsal (Ca3):   [0.00,  0.14, -2.65]
+ *   - Caudal Apex / Spade Tip (Ca4): [0.00,  0.22, -3.20]
+ * 
+ * 2. Appendicular Joint Plan:
+ *   - Wing Shoulder (Scapula):       [±0.68,  0.48,  0.35]
+ *   - Wing Elbow (Cubitus):          [±1.24,  0.82,  0.05]
+ *   - Wing Wrist (Carpus):           [±1.76,  0.68, -0.28]
+ *   - Wing Thumb Claw (Pollex):      [±1.82,  0.78, -0.24]
+ *   - Wing Finger 1 (Lead Spar Tip): [±2.36,  1.26, -0.62]
+ *   - Wing Finger 2 (Strut 1 Tip):   [±2.40,  0.44, -0.92]
+ *   - Wing Finger 3 (Strut 2 Tip):   [±2.05, -0.05, -0.98]
+ *   - Wing Finger 4 (Trailing Tip):  [±1.55, -0.25, -0.80]
+ *   - Foreleg Glenoid (Shoulder):    [±0.55,  0.10,  0.50]
+ *   - Foreleg Elbow (Cubitus):       [±0.50, -0.22,  0.56]
+ *   - Foreleg Wrist (Carpus):        [±0.48, -0.44,  0.62]
+ *   - Foreleg Claw Cluster:          [±0.47, -0.60,  0.70]
+ *   - Hindleg Hip (Acetabulum):      [±0.74,  0.12, -0.78]
+ *   - Hindleg Knee (Stifle):         [±0.76, -0.16, -0.68]
+ *   - Hindleg Hock (Tarsus):         [±0.78, -0.42, -0.88]
+ *   - Hindleg Metatarsus (Foot):     [±0.78, -0.58, -0.74]
+ *   - Hindleg Claw Cluster:          [±0.78, -0.64, -0.58]
+ * =============================================================================
  */
 export const dragonRecipe: CreatureRecipe = {
   id: 'archetype-dragon',
@@ -32,50 +56,82 @@ export const dragonRecipe: CreatureRecipe = {
   },
   parts: [
     // -------------------------------------------------------------------------
-    // 1. Torso: Three overlapping ellipsoids & Glowing Core
+    // 1. Torso: Deep Ribcage Tube, Muscular Profile, Ribs & Belly Bands
     // -------------------------------------------------------------------------
     {
-      id: 'dragon-chest',
-      shape: 'sphere',
+      id: 'dragon-torso',
+      shape: 'tube',
       role: 'body',
-      pos: [0, 0.15, 0.35],
-      scale: [1.35, 1.25, 1.3],
+      pos: [0, 0, 0],
+      scale: [1, 1, 1],
       skin: 'scales',
       texScale: [2, 4],
-      silhouette: true,
-    },
-    {
-      id: 'dragon-waist',
-      shape: 'sphere',
-      role: 'body',
-      pos: [0, 0.1, -0.2],
-      scale: [1.0, 0.95, 1.05],
-      skin: 'scales',
-      texScale: [2, 4],
-      silhouette: true,
-    },
-    {
-      id: 'dragon-hip',
-      shape: 'sphere',
-      role: 'body',
-      pos: [0, 0.12, -0.85],
-      scale: [1.15, 1.05, 1.15],
-      skin: 'scales',
-      texScale: [2, 4],
+      tube: {
+        points: [
+          [0, 0.50, 0.65],
+          [0, 0.28, 0.22],
+          [0, 0.18, -0.25],
+          [0, 0.12, -0.95],
+        ],
+        radiusStart: 0.58,
+        radiusEnd: 0.36,
+        aspect: 1.25,
+        radiusProfile: [1.0, 1.25, 0.95, 0.85],
+        bumps: { amp: 0.025, freq: 2.8, seed: 101 },
+        scales: {
+          count: 650,
+          size: [0.12, 0.18],
+          seed: 101,
+        },
+      },
       silhouette: true,
     },
     {
       id: 'dragon-core',
       shape: 'octahedron',
       role: 'glow',
-      pos: [0, 0.18, 0.42],
+      pos: [0, 0.22, 0.30],
       scale: [0.55, 0.55, 0.55],
       grow: [1.0, 2.2],
       anim: { kind: 'pulse', speed: 2.2, amp: 0.18 },
     },
+    // Faint lateral rib ridges (grow with ferocity)
+    {
+      id: 'dragon-ribs-l',
+      shape: 'cylinder',
+      role: 'accent',
+      pos: [0.42, 0.28, 0.48],
+      scale: [0.03, 0.22, 0.06],
+      rot: [0.15, 0.3, -0.75],
+      repeat: { count: 5, stepPos: [0.02, -0.04, -0.20], stepRot: [0, 0, 0.04], stepScale: [-0.002, -0.015, 0] },
+      grow: [1.0, 1.8],
+      fine: true,
+    },
+    {
+      id: 'dragon-ribs-r',
+      shape: 'cylinder',
+      role: 'accent',
+      pos: [-0.42, 0.28, 0.48],
+      scale: [0.03, 0.22, 0.06],
+      rot: [0.15, -0.3, 0.75],
+      repeat: { count: 5, stepPos: [-0.02, -0.04, -0.20], stepRot: [0, 0, -0.04], stepScale: [-0.002, -0.015, 0] },
+      grow: [1.0, 1.8],
+      fine: true,
+    },
+    // Ventral belly bands (flattened bands along underside)
+    {
+      id: 'dragon-belly-bands',
+      shape: 'cylinder',
+      role: 'accent',
+      pos: [0, -0.08, 0.48],
+      rot: [0, 0, 1.57],
+      scale: [0.08, 0.46, 0.16],
+      repeat: { count: 6, stepPos: [0, -0.01, -0.22], stepScale: [-0.005, -0.03, -0.01] },
+      fine: true,
+    },
 
     // -------------------------------------------------------------------------
-    // 2. Neck: S-curve tapering tube with dorsal blade spikes
+    // 2. Neck: S-Curve Muscular Tube, Ventral Throat Bands & Dorsal Spikes
     // -------------------------------------------------------------------------
     {
       id: 'dragon-neck',
@@ -87,15 +143,18 @@ export const dragonRecipe: CreatureRecipe = {
       texScale: [2, 4],
       tube: {
         points: [
-          [0, 0.45, 0.72],
-          [0, 0.9, 1.05],
-          [0, 1.25, 1.35],
-          [0, 1.45, 1.68],
+          [0, 0.50, 0.65],
+          [0, 0.86, 0.92],
+          [0, 1.22, 1.22],
+          [0, 1.45, 1.52],
         ],
-        radiusStart: 0.42,
+        radiusStart: 0.44,
         radiusEnd: 0.22,
+        aspect: 1.15,
+        radiusProfile: [1.18, 1.08, 0.95, 0.82],
+        bumps: { amp: 0.03, freq: 3.0, seed: 42 },
         scales: {
-          count: 320,
+          count: 450,
           size: [0.12, 0.18],
           seed: 42,
         },
@@ -103,110 +162,369 @@ export const dragonRecipe: CreatureRecipe = {
       silhouette: true,
     },
     {
-      id: 'dragon-neck-spike-0',
-      shape: 'blade',
+      id: 'dragon-neck-bands',
+      shape: 'cylinder',
       role: 'accent',
-      pos: [0, 0.85, 0.92],
-      rot: [-0.35, 0, 0],
-      scale: [0.12, 0.32, 0.12],
-      grow: [1.0, 1.8],
+      pos: [0, 0.58, 0.76],
+      rot: [0.45, 0, 1.57],
+      scale: [0.06, 0.30, 0.12],
+      repeat: { count: 4, stepPos: [0, 0.22, 0.20], stepRot: [-0.1, 0, 0], stepScale: [-0.005, -0.03, -0.01] },
+      fine: true,
     },
     {
-      id: 'dragon-neck-spike-1',
+      id: 'dragon-neck-spikes',
       shape: 'blade',
       role: 'accent',
-      pos: [0, 1.08, 1.12],
+      pos: [0, 0.88, 0.94],
       rot: [-0.35, 0, 0],
       scale: [0.12, 0.35, 0.12],
-      grow: [1.0, 1.8],
-    },
-    {
-      id: 'dragon-neck-spike-2',
-      shape: 'blade',
-      role: 'accent',
-      pos: [0, 1.32, 1.32],
-      rot: [-0.3, 0, 0],
-      scale: [0.11, 0.32, 0.11],
-      grow: [1.0, 1.8],
-    },
-    {
-      id: 'dragon-neck-spike-3',
-      shape: 'blade',
-      role: 'accent',
-      pos: [0, 1.52, 1.52],
-      rot: [-0.25, 0, 0],
-      scale: [0.1, 0.28, 0.1],
+      repeat: { count: 3, stepPos: [0, 0.27, 0.24], stepScale: [-0.01, -0.035, -0.01] },
       grow: [1.0, 1.8],
     },
 
     // -------------------------------------------------------------------------
-    // 3. Head: Cranium, Snout, Jaw, Brow, Nostrils, Eyes, Horns, Cheek Spikes, Teeth
+    // 3. Head: Cranium, Wedge Snout, Jaw, Brow, Nostrils, Slit Eyes, Horns & Teeth
     // -------------------------------------------------------------------------
+    {
+      id: 'dragon-cranium',
+      shape: 'box',
+      role: 'body',
+      pos: [0, 1.56, 1.68],
+      rot: [0.08, 0, 0],
+      scale: [0.42, 0.34, 0.46],
+      silhouette: true,
+    },
     {
       id: 'dragon-snout',
       shape: 'cone',
       role: 'body',
-      pos: [0, 1.48, 1.98],
-      rot: [0.35, 0, 0],
-      scale: [0.38, 0.65, 0.32],
+      pos: [0, 1.50, 2.05],
+      rot: [0.36, 0, 0],
+      scale: [0.36, 0.72, 0.30],
       silhouette: true,
     },
     {
       id: 'dragon-jaw',
       shape: 'box',
+      role: 'body',
+      pos: [0, 1.34, 1.95],
+      rot: [0.10, 0, 0],
+      scale: [0.30, 0.10, 0.62],
+      silhouette: true,
+      grow: [1.0, 1.35],
+    },
+    // Brow ridges
+    {
+      id: 'dragon-brow-l',
+      shape: 'box',
       role: 'accent',
-      pos: [0, 1.3, 1.9],
-      rot: [0.08, 0, 0],
-      scale: [0.3, 0.12, 0.58],
+      pos: [0.19, 1.62, 1.76],
+      rot: [0.15, 0.22, -0.12],
+      scale: [0.12, 0.08, 0.34],
       silhouette: true,
     },
-
-    // Brow ridges
-    ...limbPair('dragon-brow', 'box', 'accent', [0.18, 1.6, 1.76], [0.12, 0.08, 0.32], [0.15, 0.2, -0.1], {
+    {
+      id: 'dragon-brow-r',
+      shape: 'box',
+      role: 'accent',
+      pos: [-0.19, 1.62, 1.76],
+      rot: [0.15, -0.22, 0.12],
+      scale: [0.12, 0.08, 0.34],
       silhouette: true,
-    }),
-
+    },
+    // Cheek spikes (2 per side with bilateral asymmetry)
+    {
+      id: 'dragon-cheek-spikes-l',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0.26, 1.38, 1.68],
+      rot: [-0.2, 0.72, 0],
+      scale: [0.08, 0.32, 0.08],
+      repeat: { count: 2, stepPos: [0.02, -0.06, -0.10], stepScale: [-0.01, -0.04, -0.01] },
+      fine: true,
+    },
+    {
+      id: 'dragon-cheek-spikes-r',
+      shape: 'blade',
+      role: 'accent',
+      pos: [-0.26, 1.38, 1.68],
+      rot: [-0.2, -0.68, 0.04],
+      scale: [0.08, 0.32, 0.08],
+      repeat: { count: 2, stepPos: [-0.02, -0.06, -0.10], stepScale: [-0.01, -0.04, -0.01] },
+      fine: true,
+    },
+    // Frill of blade spikes behind jaw
+    {
+      id: 'dragon-frill-l',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0.24, 1.28, 1.46],
+      rot: [-0.4, 0.8, -0.2],
+      scale: [0.06, 0.24, 0.06],
+      fine: true,
+    },
+    {
+      id: 'dragon-frill-r',
+      shape: 'blade',
+      role: 'accent',
+      pos: [-0.24, 1.28, 1.46],
+      rot: [-0.4, -0.78, 0.18],
+      scale: [0.06, 0.24, 0.06],
+      fine: true,
+    },
     // Nostril bumps
-    ...limbPair('dragon-nostril', 'sphere', 'body', [0.09, 1.55, 2.18], [0.06, 0.06, 0.06], undefined, {
+    {
+      id: 'dragon-nostril-l',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [0.09, 1.56, 2.22],
+      scale: [0.05, 0.05, 0.05],
       fine: true,
-    }),
-
-    // Glowing eyes (small glow parts)
-    ...limbPair('dragon-eye', 'sphere', 'eye', [0.18, 1.52, 1.75], [0.07, 0.07, 0.07], undefined, {
-      silhouette: true,
-    }),
-
-    // Long sweeping horns
-    ...hornPair('dragon-horn', 'cone', 'accent', [0.3, 1.72, 1.5], [0.13, 0.95, 0.13], [-0.7, 0.22, 0.18], {
-      grow: [1.0, 2.2],
-      silhouette: true,
-    }),
-
-    // Cheek spikes
-    ...hornPair('dragon-cheek', 'blade', 'accent', [0.26, 1.34, 1.68], [0.09, 0.36, 0.09], [-0.2, 0.7, 0], {
+    },
+    {
+      id: 'dragon-nostril-r',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [-0.09, 1.56, 2.22],
+      scale: [0.05, 0.05, 0.05],
       fine: true,
-    }),
-
-    // Ferocious extra horns (appearAt: 0.7)
-    ...hornPair('dragon-extra-horn', 'cone', 'accent', [0.2, 1.62, 1.38], [0.1, 0.7, 0.1], [-0.85, 0.15, 0.15], {
-      appearAt: 0.7,
+    },
+    // Midline crest between the horns
+    {
+      id: 'dragon-crest-ridge',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0, 1.70, 1.58],
+      rot: [-0.4, 0, 0],
+      scale: [0.06, 0.28, 0.22],
+      grow: [1.0, 1.6],
+    },
+    // Eyes: Emissive sphere + vertical slit pupil + thin eyelid ridge
+    {
+      id: 'dragon-eye-l',
+      shape: 'sphere',
+      role: 'eye',
+      pos: [0.18, 1.53, 1.76],
+      scale: [0.08, 0.08, 0.08],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-pupil-l',
+      shape: 'box',
+      role: 'body',
+      pos: [0.21, 1.53, 1.79],
+      rot: [0, 0.35, 0],
+      scale: [0.015, 0.07, 0.03],
+      fine: true,
+    },
+    {
+      id: 'dragon-eyelid-l',
+      shape: 'box',
+      role: 'accent',
+      pos: [0.19, 1.58, 1.76],
+      rot: [0.1, 0.3, -0.1],
+      scale: [0.09, 0.03, 0.12],
+      fine: true,
+    },
+    {
+      id: 'dragon-eye-r',
+      shape: 'sphere',
+      role: 'eye',
+      pos: [-0.18, 1.53, 1.76],
+      scale: [0.08, 0.08, 0.08],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-pupil-r',
+      shape: 'box',
+      role: 'body',
+      pos: [-0.21, 1.53, 1.79],
+      rot: [0, -0.35, 0],
+      scale: [0.015, 0.07, 0.03],
+      fine: true,
+    },
+    {
+      id: 'dragon-eyelid-r',
+      shape: 'box',
+      role: 'accent',
+      pos: [-0.19, 1.58, 1.76],
+      rot: [0.1, -0.3, 0.1],
+      scale: [0.09, 0.03, 0.12],
+      fine: true,
+    },
+    // Main sweeping curved horn tubes (with subtle asymmetry)
+    {
+      id: 'dragon-horn-l',
+      shape: 'tube',
+      role: 'accent',
+      pos: [0, 0, 0],
+      scale: [1, 1, 1],
+      tube: {
+        points: [
+          [0.22, 1.68, 1.58],
+          [0.35, 1.95, 1.35],
+          [0.44, 2.18, 1.05],
+        ],
+        radiusStart: 0.10,
+        radiusEnd: 0.02,
+      },
+      grow: [1.0, 1.6],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-horn-r',
+      shape: 'tube',
+      role: 'accent',
+      pos: [0, 0, 0],
+      scale: [1, 1, 1],
+      tube: {
+        points: [
+          [-0.22, 1.68, 1.58],
+          [-0.34, 1.96, 1.34],
+          [-0.42, 2.20, 1.02],
+        ],
+        radiusStart: 0.10,
+        radiusEnd: 0.02,
+      },
+      grow: [1.0, 1.6],
+      silhouette: true,
+    },
+    // Extra ferocious horn pair (appearAt: 0.70)
+    {
+      id: 'dragon-extra-horn-l',
+      shape: 'cone',
+      role: 'accent',
+      pos: [0.18, 1.60, 1.45],
+      rot: [-0.85, 0.18, 0.15],
+      scale: [0.09, 0.55, 0.09],
+      appearAt: 0.70,
       grow: [1.0, 1.5],
       silhouette: true,
-    }),
-
-    // Ferocious lower jaw blade teeth (appearAt: 0.7)
-    ...[
-      [0.11, 1.78],
-      [0.11, 1.86],
-      [0.1, 1.94],
-      [0.08, 2.02],
-    ].flatMap(([x, z], i) => [
-      { id: `dragon-tooth-l-${i}`, shape: 'blade' as const, role: 'accent' as const, pos: [x, 1.36, z] as [number, number, number], rot: [0.2, 0, 0] as [number, number, number], scale: [0.04, 0.1, 0.04] as [number, number, number], appearAt: 0.7, fine: true },
-      { id: `dragon-tooth-r-${i}`, shape: 'blade' as const, role: 'accent' as const, pos: [-x, 1.36, z] as [number, number, number], rot: [0.2, 0, 0] as [number, number, number], scale: [0.04, 0.1, 0.04] as [number, number, number], appearAt: 0.7, fine: true },
-    ]),
+    },
+    {
+      id: 'dragon-extra-horn-r',
+      shape: 'cone',
+      role: 'accent',
+      pos: [-0.18, 1.60, 1.45],
+      rot: [-0.85, -0.15, -0.15],
+      scale: [0.09, 0.55, 0.09],
+      appearAt: 0.70,
+      grow: [1.0, 1.5],
+      silhouette: true,
+    },
+    // Teeth: 4 Front Fangs + 4 Repeated Rows (28 total blade teeth)
+    {
+      id: 'dragon-fang-ul',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0.12, 1.44, 2.15],
+      rot: [0.2, 0.1, 0],
+      scale: [0.04, 0.14, 0.04],
+      grow: [1.0, 1.8],
+      fine: true,
+    },
+    {
+      id: 'dragon-fang-ur',
+      shape: 'blade',
+      role: 'accent',
+      pos: [-0.12, 1.44, 2.15],
+      rot: [0.2, -0.1, 0],
+      scale: [0.04, 0.14, 0.04],
+      grow: [1.0, 1.8],
+      fine: true,
+    },
+    {
+      id: 'dragon-fang-ll',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0.10, 1.38, 2.12],
+      rot: [-0.2, 0.1, 0],
+      scale: [0.04, 0.13, 0.04],
+      grow: [1.0, 1.8],
+      fine: true,
+    },
+    {
+      id: 'dragon-fang-lr',
+      shape: 'blade',
+      role: 'accent',
+      pos: [-0.10, 1.38, 2.12],
+      rot: [-0.2, -0.1, 0],
+      scale: [0.04, 0.13, 0.04],
+      grow: [1.0, 1.8],
+      fine: true,
+    },
+    {
+      id: 'dragon-teeth-row-ul',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0.13, 1.46, 2.05],
+      rot: [0.15, 0, 0],
+      scale: [0.035, 0.09, 0.035],
+      repeat: { count: 6, stepPos: [0.012, 0.01, -0.06], stepScale: [-0.002, -0.006, -0.002] },
+      grow: [1.0, 1.6],
+      fine: true,
+      appearAt: 0.35,
+    },
+    {
+      id: 'dragon-teeth-row-ur',
+      shape: 'blade',
+      role: 'accent',
+      pos: [-0.13, 1.46, 2.05],
+      rot: [0.15, 0, 0],
+      scale: [0.035, 0.09, 0.035],
+      repeat: { count: 6, stepPos: [-0.012, 0.01, -0.06], stepScale: [-0.002, -0.006, -0.002] },
+      grow: [1.0, 1.6],
+      fine: true,
+      appearAt: 0.35,
+    },
+    {
+      id: 'dragon-teeth-row-ll',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0.11, 1.37, 2.02],
+      rot: [-0.15, 0, 0],
+      scale: [0.03, 0.08, 0.03],
+      repeat: { count: 6, stepPos: [0.01, -0.008, -0.06], stepScale: [-0.002, -0.005, -0.002] },
+      grow: [1.0, 1.6],
+      fine: true,
+      appearAt: 0.65,
+    },
+    {
+      id: 'dragon-teeth-row-lr',
+      shape: 'blade',
+      role: 'accent',
+      pos: [-0.11, 1.37, 2.02],
+      rot: [-0.15, 0, 0],
+      scale: [0.03, 0.08, 0.03],
+      repeat: { count: 6, stepPos: [-0.01, -0.008, -0.06], stepScale: [-0.002, -0.005, -0.002] },
+      grow: [1.0, 1.6],
+      fine: true,
+      appearAt: 0.65,
+    },
+    // Forked tongue (visible at high ferocity)
+    {
+      id: 'dragon-tongue-fork-l',
+      shape: 'cylinder',
+      role: 'accent',
+      pos: [0.03, 1.38, 2.18],
+      rot: [0.2, 0.15, 0],
+      scale: [0.02, 0.24, 0.02],
+      appearAt: 0.65,
+      fine: true,
+    },
+    {
+      id: 'dragon-tongue-fork-r',
+      shape: 'cylinder',
+      role: 'accent',
+      pos: [-0.03, 1.38, 2.18],
+      rot: [0.2, -0.15, 0],
+      scale: [0.02, 0.24, 0.02],
+      appearAt: 0.65,
+      fine: true,
+    },
 
     // -------------------------------------------------------------------------
-    // 4. Tail: Gentle S-curve tapering tube & Spade Tip
+    // 4. Tail: Long S-Curve Tube, Spade Tip & Caudal Spikes
     // -------------------------------------------------------------------------
     {
       id: 'dragon-tail',
@@ -218,15 +536,19 @@ export const dragonRecipe: CreatureRecipe = {
       texScale: [2, 4],
       tube: {
         points: [
-          [0, 0.15, -1.2],
-          [0, 0.02, -1.8],
-          [0, 0.12, -2.45],
-          [0, 0.22, -3.1],
+          [0, 0.12, -0.95],
+          [0, 0.05, -1.55],
+          [0, 0.00, -2.15],
+          [0, 0.12, -2.75],
+          [0, 0.22, -3.20],
         ],
-        radiusStart: 0.38,
-        radiusEnd: 0.06,
+        radiusStart: 0.36,
+        radiusEnd: 0.05,
+        aspect: 1.1,
+        radiusProfile: [1.05, 0.90, 0.75, 0.60, 0.45],
+        bumps: { amp: 0.02, freq: 3.2, seed: 88 },
         scales: {
-          count: 420,
+          count: 550,
           size: [0.11, 0.16],
           seed: 88,
         },
@@ -234,48 +556,81 @@ export const dragonRecipe: CreatureRecipe = {
       anim: { kind: 'sway', speed: 1.6, amp: 0.22 },
       silhouette: true,
     },
-    ...hornPair('dragon-tail-spade', 'blade', 'accent', [0.15, 0.22, -3.15], [0.12, 0.45, 0.22], [0, 0, 0.8], {
+    {
+      id: 'dragon-tail-spade-l',
+      shape: 'membrane',
+      role: 'membrane',
+      pos: [0, 0.22, -3.20],
+      scale: [1, 1, 1],
+      polygon: [
+        [0, 0],
+        [0.22, 0.18],
+        [0.18, -0.15],
+        [0, -0.28],
+        [-0.02, 0],
+      ],
+      anim: { kind: 'sway', speed: 1.6, amp: 0.22 },
       silhouette: true,
-    }),
+    },
+    {
+      id: 'dragon-tail-spade-r',
+      shape: 'membrane',
+      role: 'membrane',
+      pos: [0, 0.22, -3.20],
+      scale: [1, 1, 1],
+      polygon: [
+        [0, 0],
+        [-0.22, 0.18],
+        [-0.18, -0.15],
+        [0, -0.28],
+        [0.02, 0],
+      ],
+      anim: { kind: 'sway', speed: 1.6, amp: 0.22 },
+      silhouette: true,
+    },
 
     // -------------------------------------------------------------------------
-    // 5. Dorsal Spikes (8 Mild base, 8 Menacing extra, 12 Ferocious tail)
+    // 5. Dorsal Spikes (10 Mild Base, 10 Menacing Extra, 12 Ferocious Caudal)
     // -------------------------------------------------------------------------
-    ...[
-      [0.72, 0.3, 0.14, 0.42], [0.68, 0.0, 0.14, 0.4], [0.65, -0.3, 0.13, 0.38],
-      [0.62, -0.6, 0.13, 0.36], [0.58, -0.9, 0.12, 0.34], [0.48, -1.2, 0.11, 0.32],
-      [0.38, -1.5, 0.1, 0.3], [0.28, -1.8, 0.09, 0.28],
-    ].map(([y, z, w, h], i) => ({
-      id: `dragon-spine-${i}`, shape: 'blade' as const, role: 'accent' as const,
-      pos: [0, y, z] as [number, number, number], rot: [-0.35, 0, 0] as [number, number, number],
-      scale: [w, h, w] as [number, number, number], grow: [1.0, 2.0] as [number, number],
-    })),
-
-    ...[
-      [0.7, 0.15, 0.12, 0.36], [0.66, -0.15, 0.12, 0.34], [0.63, -0.45, 0.11, 0.32],
-      [0.6, -0.75, 0.11, 0.3], [0.52, -1.05, 0.1, 0.28], [0.42, -1.35, 0.09, 0.26],
-      [0.32, -1.65, 0.08, 0.24], [0.24, -1.95, 0.07, 0.22],
-    ].map(([y, z, w, h], i) => ({
-      id: `dragon-menace-spine-${i}`, shape: 'blade' as const, role: 'accent' as const,
-      pos: [0, y, z] as [number, number, number], rot: [-0.38, 0, 0] as [number, number, number],
-      scale: [w, h, w] as [number, number, number], appearAt: 0.35, grow: [1.0, 1.6] as [number, number], fine: true,
-    })),
-
-    ...[
-      [0.22, -2.1, 0.07, 0.22], [0.21, -2.2, 0.07, 0.21], [0.2, -2.3, 0.06, 0.2],
-      [0.19, -2.4, 0.06, 0.19], [0.19, -2.5, 0.06, 0.18], [0.2, -2.6, 0.05, 0.17],
-      [0.21, -2.7, 0.05, 0.16], [0.22, -2.8, 0.05, 0.15], [0.23, -2.9, 0.04, 0.14],
-      [0.24, -3.0, 0.04, 0.13], [0.25, -3.05, 0.04, 0.12], [0.25, -3.1, 0.03, 0.11],
-    ].map(([y, z, w, h], i) => ({
-      id: `dragon-ferocious-spine-${i}`, shape: 'blade' as const, role: 'accent' as const,
-      pos: [0, y, z] as [number, number, number], rot: [-0.4, 0, 0] as [number, number, number],
-      scale: [w, h, w] as [number, number, number], appearAt: 0.7, grow: [1.0, 1.4] as [number, number], fine: true,
-    })),
+    {
+      id: 'dragon-dorsal-base',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0, 0.72, 0.30],
+      rot: [-0.35, 0, 0],
+      scale: [0.14, 0.42, 0.14],
+      repeat: { count: 10, stepPos: [0, -0.062, -0.30], stepScale: [-0.007, -0.02, -0.007] },
+      grow: [1.0, 2.0],
+    },
+    {
+      id: 'dragon-dorsal-menace',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0, 0.70, 0.15],
+      rot: [-0.38, 0, 0],
+      scale: [0.12, 0.36, 0.12],
+      repeat: { count: 10, stepPos: [0, -0.059, -0.30], stepScale: [-0.006, -0.02, -0.006] },
+      appearAt: 0.35,
+      grow: [1.0, 1.6],
+      fine: true,
+    },
+    {
+      id: 'dragon-dorsal-caudal',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0, 0.18, -2.65],
+      rot: [-0.4, 0, 0],
+      scale: [0.05, 0.17, 0.05],
+      repeat: { count: 12, stepPos: [0, 0.006, -0.048], stepScale: [-0.0025, -0.01, -0.0025] },
+      appearAt: 0.70,
+      grow: [1.0, 1.4],
+      fine: true,
+    },
 
     // -------------------------------------------------------------------------
-    // 6. Wings: Bilateral Arm Tubes, 3 Finger Bone Tubes, Membrane Polygons
+    // 6. Wings: Bilateral Arm Tubes, Knobbed Joints, 4 Finger Bones & Scalloped Membrane
     // -------------------------------------------------------------------------
-    // Left wing arm tube
+    // Left Wing Armature
     {
       id: 'dragon-wing-arm-l',
       shape: 'tube',
@@ -284,39 +639,64 @@ export const dragonRecipe: CreatureRecipe = {
       scale: [1, 1, 1],
       tube: {
         points: [
-          [0.65, 0.5, 0.35],
-          [1.25, 0.85, 0.05],
-          [1.75, 0.68, -0.28],
+          [0.65, 0.48, 0.35],
+          [1.24, 0.82, 0.05],
         ],
-        radiusStart: 0.15,
-        radiusEnd: 0.08,
+        radiusStart: 0.14,
+        radiusEnd: 0.10,
       },
       grow: [0.85, 1.25],
-      anim: { kind: 'flap', speed: 1.8, amp: 0.24, phase: 0 },
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: 0 },
       silhouette: true,
     },
-    // Right wing arm tube
     {
-      id: 'dragon-wing-arm-r',
+      id: 'dragon-wing-elbow-l',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [1.24, 0.82, 0.05],
+      scale: [0.12, 0.12, 0.12],
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: 0 },
+      fine: true,
+    },
+    {
+      id: 'dragon-wing-forearm-l',
       shape: 'tube',
       role: 'body',
       pos: [0, 0, 0],
       scale: [1, 1, 1],
       tube: {
         points: [
-          [-0.65, 0.5, 0.35],
-          [-1.25, 0.85, 0.05],
-          [-1.75, 0.68, -0.28],
+          [1.24, 0.82, 0.05],
+          [1.76, 0.68, -0.28],
         ],
-        radiusStart: 0.15,
-        radiusEnd: 0.08,
+        radiusStart: 0.10,
+        radiusEnd: 0.07,
       },
       grow: [0.85, 1.25],
-      anim: { kind: 'flap', speed: 1.8, amp: 0.24, phase: Math.PI },
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: 0 },
       silhouette: true,
     },
-
-    // Left wing 3 finger bone tubes
+    {
+      id: 'dragon-wing-wrist-l',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [1.76, 0.68, -0.28],
+      scale: [0.10, 0.10, 0.10],
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: 0 },
+      fine: true,
+    },
+    {
+      id: 'dragon-wing-thumb-l',
+      shape: 'blade',
+      role: 'accent',
+      pos: [1.78, 0.78, -0.24],
+      rot: [0.4, 0, -0.5],
+      scale: [0.06, 0.18, 0.06],
+      grow: [1.0, 1.6],
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: 0 },
+      silhouette: true,
+    },
+    // Left Wing 4 Finger Bones
     {
       id: 'dragon-wing-finger1-l',
       shape: 'tube',
@@ -325,15 +705,15 @@ export const dragonRecipe: CreatureRecipe = {
       scale: [1, 1, 1],
       tube: {
         points: [
-          [1.75, 0.68, -0.28],
-          [2.1, 1.05, -0.42],
-          [2.35, 1.28, -0.62],
+          [1.76, 0.68, -0.28],
+          [2.12, 1.05, -0.44],
+          [2.36, 1.26, -0.62],
         ],
-        radiusStart: 0.07,
-        radiusEnd: 0.02,
+        radiusStart: 0.06,
+        radiusEnd: 0.015,
       },
       grow: [0.85, 1.25],
-      anim: { kind: 'flap', speed: 1.8, amp: 0.24, phase: 0 },
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: 0 },
       silhouette: true,
     },
     {
@@ -344,15 +724,15 @@ export const dragonRecipe: CreatureRecipe = {
       scale: [1, 1, 1],
       tube: {
         points: [
-          [1.75, 0.68, -0.28],
-          [2.15, 0.58, -0.58],
-          [2.4, 0.42, -0.92],
+          [1.76, 0.68, -0.28],
+          [2.16, 0.60, -0.60],
+          [2.40, 0.44, -0.92],
         ],
-        radiusStart: 0.07,
-        radiusEnd: 0.02,
+        radiusStart: 0.055,
+        radiusEnd: 0.015,
       },
       grow: [0.85, 1.25],
-      anim: { kind: 'flap', speed: 1.8, amp: 0.24, phase: 0 },
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: 0 },
       silhouette: true,
     },
     {
@@ -363,19 +743,128 @@ export const dragonRecipe: CreatureRecipe = {
       scale: [1, 1, 1],
       tube: {
         points: [
-          [1.75, 0.68, -0.28],
-          [1.9, 0.22, -0.52],
-          [1.92, -0.15, -0.78],
+          [1.76, 0.68, -0.28],
+          [1.96, 0.28, -0.62],
+          [2.05, -0.05, -0.98],
         ],
-        radiusStart: 0.07,
-        radiusEnd: 0.02,
+        radiusStart: 0.05,
+        radiusEnd: 0.015,
       },
       grow: [0.85, 1.25],
-      anim: { kind: 'flap', speed: 1.8, amp: 0.24, phase: 0 },
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: 0 },
+      silhouette: true,
+    },
+    {
+      id: 'dragon-wing-finger4-l',
+      shape: 'tube',
+      role: 'accent',
+      pos: [0, 0, 0],
+      scale: [1, 1, 1],
+      tube: {
+        points: [
+          [1.76, 0.68, -0.28],
+          [1.70, 0.10, -0.55],
+          [1.55, -0.25, -0.80],
+        ],
+        radiusStart: 0.045,
+        radiusEnd: 0.015,
+      },
+      grow: [0.85, 1.25],
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: 0 },
+      silhouette: true,
+    },
+    // Left Wing Scalloped Membrane
+    {
+      id: 'dragon-wing-membrane-l',
+      shape: 'membrane',
+      role: 'membrane',
+      pos: [1.76, 0.68, -0.28],
+      rot: [0.15, 0, -0.1],
+      scale: [1, 1, 1],
+      polygon: [
+        [0, 0],
+        [0.60, 0.58],
+        [0.55, 0.10],
+        [0.64, -0.24],
+        [0.42, -0.52],
+        [0.29, -0.73],
+        [0.08, -0.80],
+        [-0.21, -0.93],
+        [-1.15, -0.65],
+        [-0.54, 0.14],
+      ],
+      grow: [0.85, 1.25],
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: 0 },
       silhouette: true,
     },
 
-    // Right wing 3 finger bone tubes
+    // Right Wing Armature (with slight phase asymmetry)
+    {
+      id: 'dragon-wing-arm-r',
+      shape: 'tube',
+      role: 'body',
+      pos: [0, 0, 0],
+      scale: [1, 1, 1],
+      tube: {
+        points: [
+          [-0.65, 0.48, 0.35],
+          [-1.24, 0.82, 0.05],
+        ],
+        radiusStart: 0.14,
+        radiusEnd: 0.10,
+      },
+      grow: [0.85, 1.25],
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: Math.PI + 0.1 },
+      silhouette: true,
+    },
+    {
+      id: 'dragon-wing-elbow-r',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [-1.24, 0.82, 0.05],
+      scale: [0.12, 0.12, 0.12],
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: Math.PI + 0.1 },
+      fine: true,
+    },
+    {
+      id: 'dragon-wing-forearm-r',
+      shape: 'tube',
+      role: 'body',
+      pos: [0, 0, 0],
+      scale: [1, 1, 1],
+      tube: {
+        points: [
+          [-1.24, 0.82, 0.05],
+          [-1.76, 0.68, -0.28],
+        ],
+        radiusStart: 0.10,
+        radiusEnd: 0.07,
+      },
+      grow: [0.85, 1.25],
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: Math.PI + 0.1 },
+      silhouette: true,
+    },
+    {
+      id: 'dragon-wing-wrist-r',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [-1.76, 0.68, -0.28],
+      scale: [0.10, 0.10, 0.10],
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: Math.PI + 0.1 },
+      fine: true,
+    },
+    {
+      id: 'dragon-wing-thumb-r',
+      shape: 'blade',
+      role: 'accent',
+      pos: [-1.78, 0.78, -0.24],
+      rot: [0.4, 0, 0.5],
+      scale: [0.06, 0.18, 0.06],
+      grow: [1.0, 1.6],
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: Math.PI + 0.1 },
+      silhouette: true,
+    },
+    // Right Wing 4 Finger Bones
     {
       id: 'dragon-wing-finger1-r',
       shape: 'tube',
@@ -384,15 +873,15 @@ export const dragonRecipe: CreatureRecipe = {
       scale: [1, 1, 1],
       tube: {
         points: [
-          [-1.75, 0.68, -0.28],
-          [-2.1, 1.05, -0.42],
-          [-2.35, 1.28, -0.62],
+          [-1.76, 0.68, -0.28],
+          [-2.12, 1.05, -0.44],
+          [-2.36, 1.26, -0.62],
         ],
-        radiusStart: 0.07,
-        radiusEnd: 0.02,
+        radiusStart: 0.06,
+        radiusEnd: 0.015,
       },
       grow: [0.85, 1.25],
-      anim: { kind: 'flap', speed: 1.8, amp: 0.24, phase: Math.PI },
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: Math.PI + 0.1 },
       silhouette: true,
     },
     {
@@ -403,15 +892,15 @@ export const dragonRecipe: CreatureRecipe = {
       scale: [1, 1, 1],
       tube: {
         points: [
-          [-1.75, 0.68, -0.28],
-          [-2.15, 0.58, -0.58],
-          [-2.4, 0.42, -0.92],
+          [-1.76, 0.68, -0.28],
+          [-2.16, 0.60, -0.60],
+          [-2.40, 0.44, -0.92],
         ],
-        radiusStart: 0.07,
-        radiusEnd: 0.02,
+        radiusStart: 0.055,
+        radiusEnd: 0.015,
       },
       grow: [0.85, 1.25],
-      anim: { kind: 'flap', speed: 1.8, amp: 0.24, phase: Math.PI },
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: Math.PI + 0.1 },
       silhouette: true,
     },
     {
@@ -422,83 +911,352 @@ export const dragonRecipe: CreatureRecipe = {
       scale: [1, 1, 1],
       tube: {
         points: [
-          [-1.75, 0.68, -0.28],
-          [-1.9, 0.22, -0.52],
-          [-1.92, -0.15, -0.78],
+          [-1.76, 0.68, -0.28],
+          [-1.96, 0.28, -0.62],
+          [-2.05, -0.05, -0.98],
         ],
-        radiusStart: 0.07,
-        radiusEnd: 0.02,
+        radiusStart: 0.05,
+        radiusEnd: 0.015,
       },
       grow: [0.85, 1.25],
-      anim: { kind: 'flap', speed: 1.8, amp: 0.24, phase: Math.PI },
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: Math.PI + 0.1 },
       silhouette: true,
     },
-
-    // Wing membrane polygons
     {
-      id: 'dragon-wing-membrane-l',
-      shape: 'membrane',
-      role: 'membrane',
-      pos: [1.75, 0.68, -0.28],
-      rot: [0.15, 0, -0.1],
+      id: 'dragon-wing-finger4-r',
+      shape: 'tube',
+      role: 'accent',
+      pos: [0, 0, 0],
       scale: [1, 1, 1],
-      polygon: [
-        [0, 0],
-        [0.6, 0.6],
-        [0.65, -0.25],
-        [0.17, -0.82],
-        [-1.1, -0.68],
-      ],
+      tube: {
+        points: [
+          [-1.76, 0.68, -0.28],
+          [-1.70, 0.10, -0.55],
+          [-1.55, -0.25, -0.80],
+        ],
+        radiusStart: 0.045,
+        radiusEnd: 0.015,
+      },
       grow: [0.85, 1.25],
-      anim: { kind: 'flap', speed: 1.8, amp: 0.24, phase: 0 },
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: Math.PI + 0.1 },
       silhouette: true,
     },
+    // Right Wing Scalloped Membrane
     {
       id: 'dragon-wing-membrane-r',
       shape: 'membrane',
       role: 'membrane',
-      pos: [-1.75, 0.68, -0.28],
+      pos: [-1.76, 0.68, -0.28],
       rot: [0.15, 0, 0.1],
       scale: [1, 1, 1],
       polygon: [
         [0, 0],
-        [-0.6, 0.6],
-        [-0.65, -0.25],
-        [-0.17, -0.82],
-        [1.1, -0.68],
+        [-0.60, 0.58],
+        [-0.55, 0.10],
+        [-0.64, -0.24],
+        [-0.42, -0.52],
+        [-0.29, -0.73],
+        [-0.08, -0.80],
+        [0.21, -0.93],
+        [1.15, -0.65],
+        [0.54, 0.14],
       ],
       grow: [0.85, 1.25],
-      anim: { kind: 'flap', speed: 1.8, amp: 0.24, phase: Math.PI },
+      anim: { kind: 'flap', speed: 1.5, amp: 0.22, phase: Math.PI + 0.1 },
       silhouette: true,
     },
 
     // -------------------------------------------------------------------------
-    // 7. Legs: Front Folded Legs & Strong Rear Legs with Hock and Blade Claws
+    // 7. Legs: Front Folded Forelimbs & Muscular Hindlimbs with 3 Toes and Claws
     // -------------------------------------------------------------------------
-    // Front left leg & claws
-    { id: 'dragon-leg-fl-upper', shape: 'cylinder', role: 'body', pos: [0.55, -0.15, 0.45], rot: [0.5, 0, 0.1], scale: [0.18, 0.45, 0.18], silhouette: true },
-    { id: 'dragon-leg-fl-lower', shape: 'cylinder', role: 'body', pos: [0.5, -0.42, 0.58], rot: [-0.4, 0, 0], scale: [0.14, 0.38, 0.14], silhouette: true },
-    { id: 'dragon-claw-fl-1', shape: 'blade', role: 'accent', pos: [0.45, -0.58, 0.7], rot: [0.5, 0, 0], scale: [0.08, 0.2, 0.08], grow: [1.0, 1.8], silhouette: true },
-    { id: 'dragon-claw-fl-2', shape: 'blade', role: 'accent', pos: [0.55, -0.58, 0.68], rot: [0.5, 0.2, 0], scale: [0.08, 0.2, 0.08], grow: [1.0, 1.8], silhouette: true },
+    // Front Left Forelimb
+    {
+      id: 'dragon-foreleg-upper-l',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [0.52, -0.12, 0.46],
+      rot: [0.55, 0, 0.12],
+      scale: [0.15, 0.40, 0.15],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-foreleg-elbow-l',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [0.50, -0.28, 0.56],
+      scale: [0.12, 0.12, 0.12],
+      fine: true,
+    },
+    {
+      id: 'dragon-foreleg-lower-l',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [0.48, -0.44, 0.60],
+      rot: [-0.45, 0, 0],
+      scale: [0.12, 0.34, 0.12],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-foreclaw-l1',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0.42, -0.60, 0.70],
+      rot: [0.5, -0.15, 0],
+      scale: [0.06, 0.17, 0.06],
+      grow: [1.0, 1.8],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-foreclaw-l2',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0.47, -0.60, 0.72],
+      rot: [0.5, 0, 0],
+      scale: [0.07, 0.19, 0.07],
+      grow: [1.0, 1.8],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-foreclaw-l3',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0.52, -0.60, 0.70],
+      rot: [0.5, 0.15, 0],
+      scale: [0.06, 0.17, 0.06],
+      grow: [1.0, 1.8],
+      silhouette: true,
+    },
 
-    // Front right leg & claws
-    { id: 'dragon-leg-fr-upper', shape: 'cylinder', role: 'body', pos: [-0.55, -0.15, 0.45], rot: [0.5, 0, -0.1], scale: [0.18, 0.45, 0.18], silhouette: true },
-    { id: 'dragon-leg-fr-lower', shape: 'cylinder', role: 'body', pos: [-0.5, -0.42, 0.58], rot: [-0.4, 0, 0], scale: [0.14, 0.38, 0.14], silhouette: true },
-    { id: 'dragon-claw-fr-1', shape: 'blade', role: 'accent', pos: [-0.45, -0.58, 0.7], rot: [0.5, 0, 0], scale: [0.08, 0.2, 0.08], grow: [1.0, 1.8], silhouette: true },
-    { id: 'dragon-claw-fr-2', shape: 'blade', role: 'accent', pos: [-0.55, -0.58, 0.68], rot: [0.5, -0.2, 0], scale: [0.08, 0.2, 0.08], grow: [1.0, 1.8], silhouette: true },
+    // Front Right Forelimb
+    {
+      id: 'dragon-foreleg-upper-r',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [-0.52, -0.12, 0.46],
+      rot: [0.55, 0, -0.12],
+      scale: [0.15, 0.40, 0.15],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-foreleg-elbow-r',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [-0.50, -0.28, 0.56],
+      scale: [0.12, 0.12, 0.12],
+      fine: true,
+    },
+    {
+      id: 'dragon-foreleg-lower-r',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [-0.48, -0.44, 0.60],
+      rot: [-0.45, 0, 0],
+      scale: [0.12, 0.34, 0.12],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-foreclaw-r1',
+      shape: 'blade',
+      role: 'accent',
+      pos: [-0.42, -0.60, 0.70],
+      rot: [0.5, 0.15, 0],
+      scale: [0.06, 0.17, 0.06],
+      grow: [1.0, 1.8],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-foreclaw-r2',
+      shape: 'blade',
+      role: 'accent',
+      pos: [-0.47, -0.60, 0.72],
+      rot: [0.5, 0, 0],
+      scale: [0.07, 0.19, 0.07],
+      grow: [1.0, 1.8],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-foreclaw-r3',
+      shape: 'blade',
+      role: 'accent',
+      pos: [-0.52, -0.60, 0.70],
+      rot: [0.5, -0.15, 0],
+      scale: [0.06, 0.17, 0.06],
+      grow: [1.0, 1.8],
+      silhouette: true,
+    },
 
-    // Rear left leg (thigh bulge, bent hock, 3-blade foot)
-    { id: 'dragon-thigh-rl', shape: 'sphere', role: 'body', pos: [0.72, 0.1, -0.72], scale: [0.42, 0.6, 0.48], silhouette: true },
-    { id: 'dragon-hock-rl', shape: 'cylinder', role: 'body', pos: [0.76, -0.32, -0.85], rot: [-0.3, 0, 0], scale: [0.18, 0.5, 0.18], silhouette: true },
-    { id: 'dragon-claw-rl-1', shape: 'blade', role: 'accent', pos: [0.7, -0.58, -0.72], rot: [0.4, -0.2, 0], scale: [0.08, 0.22, 0.08], grow: [1.0, 1.8], silhouette: true },
-    { id: 'dragon-claw-rl-2', shape: 'blade', role: 'accent', pos: [0.78, -0.58, -0.7], rot: [0.4, 0, 0], scale: [0.08, 0.22, 0.08], grow: [1.0, 1.8], silhouette: true },
-    { id: 'dragon-claw-rl-3', shape: 'blade', role: 'accent', pos: [0.85, -0.58, -0.72], rot: [0.4, 0.2, 0], scale: [0.08, 0.22, 0.08], grow: [1.0, 1.8], silhouette: true },
+    // Rear Left Hindlimb (Thigh Bulge, Knee Knob, Bent Hock, 3 Toes with Claws)
+    {
+      id: 'dragon-thigh-l',
+      shape: 'sphere',
+      role: 'body',
+      pos: [0.74, 0.12, -0.78],
+      scale: [0.38, 0.58, 0.44],
+      skin: 'scales',
+      silhouette: true,
+    },
+    {
+      id: 'dragon-knee-l',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [0.76, -0.16, -0.68],
+      scale: [0.14, 0.14, 0.14],
+      fine: true,
+    },
+    {
+      id: 'dragon-hock-l',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [0.77, -0.36, -0.84],
+      rot: [-0.35, 0, 0],
+      scale: [0.16, 0.46, 0.16],
+      silhouette: true,
+    },
+    // Left Rear 3 Toes
+    {
+      id: 'dragon-toe-l1',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [0.71, -0.60, -0.64],
+      rot: [0.35, -0.18, 0],
+      scale: [0.045, 0.16, 0.045],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-toe-l2',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [0.78, -0.60, -0.62],
+      rot: [0.35, 0, 0],
+      scale: [0.048, 0.18, 0.048],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-toe-l3',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [0.85, -0.60, -0.64],
+      rot: [0.35, 0.18, 0],
+      scale: [0.045, 0.16, 0.045],
+      silhouette: true,
+    },
+    // Left Rear Claws
+    {
+      id: 'dragon-claw-l1',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0.69, -0.64, -0.55],
+      rot: [0.6, -0.22, 0],
+      scale: [0.06, 0.18, 0.06],
+      grow: [1.0, 1.8],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-claw-l2',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0.78, -0.64, -0.52],
+      rot: [0.6, 0, 0],
+      scale: [0.07, 0.20, 0.07],
+      grow: [1.0, 1.8],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-claw-l3',
+      shape: 'blade',
+      role: 'accent',
+      pos: [0.87, -0.64, -0.55],
+      rot: [0.6, 0.22, 0],
+      scale: [0.06, 0.18, 0.06],
+      grow: [1.0, 1.8],
+      silhouette: true,
+    },
 
-    // Rear right leg (thigh bulge, bent hock, 3-blade foot)
-    { id: 'dragon-thigh-rr', shape: 'sphere', role: 'body', pos: [-0.72, 0.1, -0.72], scale: [0.42, 0.6, 0.48], silhouette: true },
-    { id: 'dragon-hock-rr', shape: 'cylinder', role: 'body', pos: [-0.76, -0.32, -0.85], rot: [-0.3, 0, 0], scale: [0.18, 0.5, 0.18], silhouette: true },
-    { id: 'dragon-claw-rr-1', shape: 'blade', role: 'accent', pos: [-0.7, -0.58, -0.72], rot: [0.4, 0.2, 0], scale: [0.08, 0.22, 0.08], grow: [1.0, 1.8], silhouette: true },
-    { id: 'dragon-claw-rr-2', shape: 'blade', role: 'accent', pos: [-0.78, -0.58, -0.7], rot: [0.4, 0, 0], scale: [0.08, 0.22, 0.08], grow: [1.0, 1.8], silhouette: true },
-    { id: 'dragon-claw-rr-3', shape: 'blade', role: 'accent', pos: [-0.85, -0.58, -0.72], rot: [0.4, -0.2, 0], scale: [0.08, 0.22, 0.08], grow: [1.0, 1.8], silhouette: true },
+    // Rear Right Hindlimb (with subtle asymmetry in claw angles)
+    {
+      id: 'dragon-thigh-r',
+      shape: 'sphere',
+      role: 'body',
+      pos: [-0.74, 0.12, -0.78],
+      scale: [0.38, 0.58, 0.44],
+      skin: 'scales',
+      silhouette: true,
+    },
+    {
+      id: 'dragon-knee-r',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [-0.76, -0.16, -0.68],
+      scale: [0.14, 0.14, 0.14],
+      fine: true,
+    },
+    {
+      id: 'dragon-hock-r',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [-0.77, -0.36, -0.84],
+      rot: [-0.35, 0, 0],
+      scale: [0.16, 0.46, 0.16],
+      silhouette: true,
+    },
+    // Right Rear 3 Toes
+    {
+      id: 'dragon-toe-r1',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [-0.71, -0.60, -0.64],
+      rot: [0.35, 0.18, 0],
+      scale: [0.045, 0.16, 0.045],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-toe-r2',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [-0.78, -0.60, -0.62],
+      rot: [0.35, 0, 0],
+      scale: [0.048, 0.18, 0.048],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-toe-r3',
+      shape: 'cylinder',
+      role: 'body',
+      pos: [-0.85, -0.60, -0.64],
+      rot: [0.35, -0.18, 0],
+      scale: [0.045, 0.16, 0.045],
+      silhouette: true,
+    },
+    // Right Rear Claws
+    {
+      id: 'dragon-claw-r1',
+      shape: 'blade',
+      role: 'accent',
+      pos: [-0.69, -0.64, -0.55],
+      rot: [0.6, 0.20, 0.02],
+      scale: [0.06, 0.18, 0.06],
+      grow: [1.0, 1.8],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-claw-r2',
+      shape: 'blade',
+      role: 'accent',
+      pos: [-0.78, -0.64, -0.52],
+      rot: [0.6, 0, 0],
+      scale: [0.07, 0.20, 0.07],
+      grow: [1.0, 1.8],
+      silhouette: true,
+    },
+    {
+      id: 'dragon-claw-r3',
+      shape: 'blade',
+      role: 'accent',
+      pos: [-0.87, -0.64, -0.55],
+      rot: [0.6, -0.24, -0.02],
+      scale: [0.06, 0.18, 0.06],
+      grow: [1.0, 1.8],
+      silhouette: true,
+    },
   ],
 };

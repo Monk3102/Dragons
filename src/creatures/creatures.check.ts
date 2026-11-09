@@ -218,6 +218,10 @@ runTest(
         console.error(`Recipe "${recipe.id}" exceeds ultra budget: ${trisUltra} > ${MAX_TRIANGLES_ULTRA}`);
         return false;
       }
+      if (recipe.id === 'archetype-dragon' && trisUltra < 25000) {
+        console.error(`Dragon recipe ultra triangles below minimum: ${trisUltra} < 25000`);
+        return false;
+      }
       if (trisHigh > MAX_TRIANGLES_HIGH) {
         console.error(`Recipe "${recipe.id}" exceeds high budget: ${trisHigh} > ${MAX_TRIANGLES_HIGH}`);
         return false;
@@ -506,6 +510,7 @@ for (const recipe of allRecipesToCheck) {
   const withinBudget =
     pCount <= MAX_PARTS_PER_RECIPE &&
     trisUltra <= MAX_TRIANGLES_ULTRA &&
+    (recipe.id !== 'archetype-dragon' || trisUltra >= 25000) &&
     trisHigh <= MAX_TRIANGLES_HIGH &&
     trisLow <= MAX_TRIANGLES_LOW &&
     dc <= MAX_DRAW_CALLS_ULTRA;

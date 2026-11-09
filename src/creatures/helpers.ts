@@ -248,3 +248,27 @@ export function tentacle(
   }
   return parts;
 }
+
+export function jointKnob(
+  id: string,
+  role: Role,
+  pos: [number, number, number],
+  radius: number,
+  options?: {
+    anim?: PartAnimation;
+    fine?: boolean;
+    silhouette?: boolean;
+  }
+): Part {
+  return {
+    id,
+    shape: 'sphere',
+    role,
+    pos: [...pos],
+    scale: [radius * 2, radius * 2, radius * 2],
+    anim: options?.anim,
+    fine: options?.fine ?? true,
+    silhouette: options?.silhouette,
+  };
+}
+

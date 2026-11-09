@@ -23,4 +23,11 @@
 - **Preserve Silhouette**: Mark core structural parts (torso, skull, main wings, tail) with `silhouette: true`.
 - **Cull Micro-Detail**: Mark teeth, tiny spines, and facial knobs with `fine: true` to shed geometry at low tier.
 - **Surface Scale Placement**: Add `scales` to tubes; the engine automatically scales instances (100% ultra, 35% high, 0% low).
-- **Respect Budgets**: Keep total parts <= 60, draw calls <= 30, and triangles <= 90k (ultra), <= 35k (high), <= 6k (low).
+- **Respect Budgets**: Keep total parts <= 100, draw calls <= 30, and triangles <= 90k (ultra, >= 25k for dragon), <= 35k (high), <= 6k (low).
+
+## 5. Anatomical Skeleton Plan Workflow (Dragon Redesign)
+- **Axial Spine & Joints First**: Establish 3D spline control points (snout, skull, cervical, thoracic, lumbar, caudal) and appendicular joints (shoulders, elbows, carpi, digits, hips, stifles, hocks, digits) in an explicit top-of-file comment.
+- **Instanced Ribs & Spikes**: Leverage `repeat: { count, stepPos, stepScale }` for ribs, belly bands, teeth rows, and dorsal spikes to preserve low GPU draw calls (`<= 30`) while delivering realistic density.
+- **Bilateral Asymmetry**: Apply minor positional and angular perturbations on paired appendages (e.g., horn curvature, claw angles, wing flap phases) to avoid robotic rigidity.
+- **Budget Tuning**: Keep total parts <= 100, draw calls <= 30, and triangles within [25k, 90k] (ultra), <= 35k (high), and <= 6k (low).
+
