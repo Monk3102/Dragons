@@ -116,6 +116,7 @@ export function monsterToDragonProblem(
     somaticFeeling,
     inquiry,
     status: 'Formidable',
+    creatureTypeId: monster.creatureTypeId,
 
     // 3D Visual Coordinates from Layout & Dials
     scale: layout.scale,

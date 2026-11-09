@@ -338,6 +338,7 @@ export function buildFullBackupPayload(
 
 /**
  * Trigger immediate browser download of the complete JSON backup.
+ * After successful export, records the export ISO timestamp under DRACO_ANIMI_LAST_EXPORT.
  */
 export function downloadCompleteBackup(
   notes: ConfrontationNoteItem[] = [],
@@ -359,4 +360,14 @@ export function downloadCompleteBackup(
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+
+  // Record last export time in localStorage under DRACO_ANIMI_LAST_EXPORT wrapped in try/catch
+  try {
+    if (window.localStorage) {
+      window.localStorage.setItem('DRACO_ANIMI_LAST_EXPORT', payload.exportedAt);
+    }
+  } catch (err) {
+    console.warn('[localBackup] Failed to record last export time in localStorage:', err);
+  }
 }
+

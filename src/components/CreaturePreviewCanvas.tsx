@@ -1,88 +1,201 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
+import { CreatureBody } from '../creatures/engine';
+import { getRecipe, hasRecipe, PLACEHOLDER_RECIPE } from '../creatures/registry';
+import { CreatureRecipe, DetailTier } from '../creatures/types';
 
-interface PlaceholderModelProps {
-  color?: string;
-  accentColor?: string;
+interface CameraViewRigProps {
+  view: 'full' | 'head' | 'wing';
+  viewpoints?: CreatureRecipe['viewpoints'];
 }
 
-function PlaceholderCylinder({
-  color = '#252932',
-  accentColor = '#c5a059',
-}: PlaceholderModelProps) {
-  const meshRef = useRef<THREE.Group>(null);
-  const ringRef = useRef<THREE.Mesh>(null);
+function CameraViewRig({ view, viewpoints }: CameraViewRigProps) {
+  const currentPos = useRef(new THREE.Vector3(0, 0.2, 6.2));
+  const currentTarget = useRef(new THREE.Vector3(0, 0, 0));
+
+  useFrame((state, delta) => {
+    const targetPos = new THREE.Vector3(0, 0.2, 6.2);
+    const targetLook = new THREE.Vector3(0, 0, 0);
+
+    if (view === 'head' && viewpoints?.head) {
+      targetLook.set(...viewpoints.head.target);
+      targetPos.set(
+        viewpoints.head.target[0],
+        viewpoints.head.target[1],
+        viewpoints.head.target[2] + viewpoints.head.distance
+      );
+    } else if (view === 'wing' && viewpoints?.wing) {
+      targetLook.set(...viewpoints.wing.target);
+      targetPos.set(
+        viewpoints.wing.target[0] + 0.3,
+        viewpoints.wing.target[1],
+        viewpoints.wing.target[2] + viewpoints.wing.distance
+      );
+    }
+
+    currentPos.current.lerp(targetPos, Math.min(1, delta * 4));
+    currentTarget.current.lerp(targetLook, Math.min(1, delta * 4));
+
+    state.camera.position.copy(currentPos.current);
+    state.camera.lookAt(currentTarget.current);
+  });
+
+  return null;
+}
+
+interface RotatingCreatureProps {
+  recipe: CreatureRecipe;
+  ferocity: number;
+  position: [number, number, number];
+  color?: string;
+  accentColor?: string;
+  detailLevel?: DetailTier;
+}
+
+function RotatingCreature({
+  recipe,
+  ferocity,
+  position,
+  color,
+  accentColor,
+  detailLevel = 'high',
+}: RotatingCreatureProps) {
+  const groupRef = useRef<THREE.Group>(null);
 
   useFrame((_, delta) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += delta * 0.45;
-    }
-    if (ringRef.current) {
-      ringRef.current.rotation.z -= delta * 0.3;
-      ringRef.current.rotation.x += delta * 0.15;
+    if (groupRef.current) {
+      groupRef.current.rotation.y += delta * 0.45;
     }
   });
 
   return (
-    <group ref={meshRef}>
-      {/* Central Archetypal Monolith / Cylinder */}
-      <mesh position={[0, 0, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.75, 0.85, 2.2, 32, 1]} />
-        <meshStandardMaterial
-          color={color}
-          roughness={0.4}
-          metalness={0.7}
-          envMapIntensity={0.8}
-        />
-      </mesh>
-
-      {/* Antique Gold / Copper Crown Ring */}
-      <mesh position={[0, 1.15, 0]}>
-        <cylinderGeometry args={[0.78, 0.78, 0.1, 32]} />
-        <meshStandardMaterial
-          color={accentColor}
-          roughness={0.25}
-          metalness={0.85}
-          emissive={accentColor}
-          emissiveIntensity={0.25}
-        />
-      </mesh>
-
-      {/* Antique Gold / Copper Base Ring */}
-      <mesh position={[0, -1.15, 0]}>
-        <cylinderGeometry args={[0.88, 0.88, 0.1, 32]} />
-        <meshStandardMaterial
-          color={accentColor}
-          roughness={0.3}
-          metalness={0.85}
-        />
-      </mesh>
-
-      {/* Orbiting Resonant Glyphic Ring */}
-      <mesh ref={ringRef} position={[0, 0, 0]}>
-        <torusGeometry args={[1.35, 0.025, 16, 48]} />
-        <meshStandardMaterial
-          color={accentColor}
-          roughness={0.2}
-          metalness={0.9}
-          emissive={accentColor}
-          emissiveIntensity={0.4}
-        />
-      </mesh>
-
-      {/* Floating subtle point light at core */}
-      <pointLight
-        position={[0, 0, 0]}
-        color={accentColor}
-        intensity={0.8}
-        distance={4}
+    <group ref={groupRef} position={position}>
+      <CreatureBody
+        recipe={recipe}
+        baseColor={color || '#252932'}
+        accentColor={accentColor || '#c5a059'}
+        glowColor={accentColor || '#c5a059'}
+        glowStrength={1.2}
+        ferocity={ferocity}
+        detailLevel={detailLevel}
+        bobbingSpeed={0.8}
       />
     </group>
   );
 }
 
+function RotatingPlaceholder({
+  color,
+  accentColor,
+}: {
+  color?: string;
+  accentColor?: string;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame((_, delta) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y += delta * 0.45;
+    }
+  });
+
+  return (
+    <group ref={groupRef} position={[0, -0.1, 0]}>
+      <CreatureBody
+        recipe={PLACEHOLDER_RECIPE}
+        baseColor={color || '#252932'}
+        accentColor={accentColor || '#c5a059'}
+        glowColor={accentColor || '#c5a059'}
+        glowStrength={1.0}
+        ferocity={5}
+        detailLevel="high"
+        bobbingSpeed={0.8}
+      />
+    </group>
+  );
+}
+
+interface DevControlsProps {
+  devTier: 'auto' | DetailTier;
+  setDevTier: (t: 'auto' | DetailTier) => void;
+  devView: 'full' | 'head' | 'wing';
+  setDevView: (v: 'full' | 'head' | 'wing') => void;
+  recipe: CreatureRecipe;
+  onSavePng: () => void;
+}
+
+let DevControlsComponent: React.FC<DevControlsProps> | null = null;
+if (import.meta.env.DEV) {
+  DevControlsComponent = function DevControls({
+    devTier,
+    setDevTier,
+    devView,
+    setDevView,
+    recipe,
+    onSavePng,
+  }: DevControlsProps) {
+    return (
+      <div className="absolute top-2 left-2 z-10 flex flex-wrap items-center gap-1.5 bg-black/80 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 text-[10px] font-mono text-slate-300">
+        <span className="text-amber-400 font-semibold mr-1">TIER:</span>
+        {(['auto', 'ultra', 'high', 'low'] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setDevTier(t)}
+            className={`px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
+              devTier === t ? 'bg-[#c5a059] text-black font-bold' : 'hover:bg-white/10 text-slate-400'
+            }`}
+          >
+            {t.toUpperCase()}
+          </button>
+        ))}
+
+        <span className="text-amber-400 font-semibold ml-2 mr-1">VIEW:</span>
+        <button
+          type="button"
+          onClick={() => setDevView('full')}
+          className={`px-1.5 py-0.5 rounded cursor-pointer ${
+            devView === 'full' ? 'bg-[#c5a059] text-black font-bold' : 'hover:bg-white/10 text-slate-400'
+          }`}
+        >
+          Full
+        </button>
+        <button
+          type="button"
+          disabled={!recipe.viewpoints?.head}
+          onClick={() => setDevView('head')}
+          className={`px-1.5 py-0.5 rounded cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+            devView === 'head' ? 'bg-[#c5a059] text-black font-bold' : 'hover:bg-white/10 text-slate-400'
+          }`}
+        >
+          Head
+        </button>
+        <button
+          type="button"
+          disabled={!recipe.viewpoints?.wing}
+          onClick={() => setDevView('wing')}
+          className={`px-1.5 py-0.5 rounded cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+            devView === 'wing' ? 'bg-[#c5a059] text-black font-bold' : 'hover:bg-white/10 text-slate-400'
+          }`}
+        >
+          Wing
+        </button>
+
+        <button
+          type="button"
+          onClick={onSavePng}
+          className="ml-2 px-2 py-0.5 bg-emerald-700/80 hover:bg-emerald-600 text-white rounded cursor-pointer font-sans text-[10px]"
+        >
+          Save PNG
+        </button>
+      </div>
+    );
+  };
+}
+
 interface CreaturePreviewCanvasProps {
+  creatureId?: string;
   creatureName: string;
   color?: string;
   accentColor?: string;
@@ -90,36 +203,153 @@ interface CreaturePreviewCanvasProps {
 }
 
 export const CreaturePreviewCanvas: React.FC<CreaturePreviewCanvasProps> = ({
+  creatureId,
   creatureName,
   color,
   accentColor,
   className = 'w-full h-48 sm:h-56',
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [devTier, setDevTier] = useState<'auto' | DetailTier>('auto');
+  const [devView, setDevView] = useState<'full' | 'head' | 'wing'>('full');
+
+  const isModeled = useMemo(() => {
+    return Boolean(creatureId && hasRecipe(creatureId));
+  }, [creatureId]);
+
+  const recipe = useMemo(() => {
+    return creatureId ? getRecipe(creatureId) : PLACEHOLDER_RECIPE;
+  }, [creatureId]);
+
+  const effectiveTier: DetailTier = devTier === 'auto' ? 'high' : devTier;
+
+  const handleSavePng = () => {
+    if (!containerRef.current) return;
+    const canvas = containerRef.current.querySelector('canvas');
+    if (!canvas) return;
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${recipe.id}-${effectiveTier}-menacing.png`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  };
+
   return (
     <div
+      ref={containerRef}
       className={`relative rounded-xl overflow-hidden bg-gradient-to-b from-[#0c0d12] via-[#090a0e] to-[#06070a] border border-[#c5a059]/20 shadow-inner ${className}`}
-      aria-label={`3D preview placeholder for ${creatureName}`}
+      aria-label={`3D preview for ${creatureName}`}
     >
-      <Canvas
-        camera={{ position: [0, 0.4, 4.2], fov: 38 }}
-        gl={{
-          antialias: true,
-          powerPreference: 'low-power',
-        }}
-        onCreated={({ gl }) => {
-          gl.outputColorSpace = THREE.SRGBColorSpace;
-        }}
-      >
-        <ambientLight intensity={0.4} />
-        <directionalLight position={[3, 5, 4]} intensity={1.2} color="#f5eedc" />
-        <directionalLight position={[-3, -2, -2]} intensity={0.5} color="#5577aa" />
+      {/* Dev-only controls: Tier Selector, View Selector, Save PNG */}
+      {DevControlsComponent && (
+        <DevControlsComponent
+          devTier={devTier}
+          setDevTier={setDevTier}
+          devView={devView}
+          setDevView={setDevView}
+          recipe={recipe}
+          onSavePng={handleSavePng}
+        />
+      )}
 
-        <PlaceholderCylinder color={color} accentColor={accentColor} />
-      </Canvas>
+      {isModeled ? (
+        <>
+          <Canvas
+            camera={{ position: [0, 0.2, 6.2], fov: 42 }}
+            gl={{
+              antialias: true,
+              powerPreference: 'low-power',
+              preserveDrawingBuffer: Boolean(import.meta.env.DEV),
+            }}
+            onCreated={({ gl }) => {
+              gl.outputColorSpace = THREE.SRGBColorSpace;
+            }}
+          >
+            <CameraViewRig view={devView} viewpoints={recipe.viewpoints} />
+            <ambientLight intensity={0.6} />
+            <directionalLight position={[4, 6, 5]} intensity={1.5} color="#f5eedc" />
+            <directionalLight position={[-4, -2, -3]} intensity={0.6} color="#5577aa" />
+
+            {/* Mild Variant (ferocity 2) */}
+            <RotatingCreature
+              recipe={recipe}
+              ferocity={2}
+              position={[-2.2, -0.2, 0]}
+              color={color}
+              accentColor={accentColor}
+              detailLevel={effectiveTier}
+            />
+
+            {/* Menacing Variant (ferocity 5) */}
+            <RotatingCreature
+              recipe={recipe}
+              ferocity={5}
+              position={[0, -0.2, 0]}
+              color={color}
+              accentColor={accentColor}
+              detailLevel={effectiveTier}
+            />
+
+            {/* Ferocious Variant (ferocity 9) */}
+            <RotatingCreature
+              recipe={recipe}
+              ferocity={9}
+              position={[2.2, -0.2, 0]}
+              color={color}
+              accentColor={accentColor}
+              detailLevel={effectiveTier}
+            />
+          </Canvas>
+
+          {/* Ferocity Look Variant Labels */}
+          <div className="absolute bottom-2.5 inset-x-0 flex justify-around px-4 pointer-events-none text-[10px] uppercase font-mono tracking-wider">
+            <div className="bg-black/60 px-2.5 py-1 rounded border border-white/10 text-emerald-300/90 shadow-sm">
+              Mild <span className="opacity-60">(2)</span>
+            </div>
+            <div className="bg-black/60 px-2.5 py-1 rounded border border-white/10 text-amber-300/90 shadow-sm">
+              Menacing <span className="opacity-60">(5)</span>
+            </div>
+            <div className="bg-black/60 px-2.5 py-1 rounded border border-white/10 text-rose-300/90 shadow-sm">
+              Ferocious <span className="opacity-60">(9)</span>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <Canvas
+            camera={{ position: [0, 0.2, 4.0], fov: 38 }}
+            gl={{
+              antialias: true,
+              powerPreference: 'low-power',
+              preserveDrawingBuffer: Boolean(import.meta.env.DEV),
+            }}
+            onCreated={({ gl }) => {
+              gl.outputColorSpace = THREE.SRGBColorSpace;
+            }}
+          >
+            <ambientLight intensity={0.5} />
+            <directionalLight position={[3, 5, 4]} intensity={1.2} color="#f5eedc" />
+            <directionalLight position={[-3, -2, -2]} intensity={0.5} color="#5577aa" />
+
+            <RotatingPlaceholder color={color} accentColor={accentColor} />
+          </Canvas>
+
+          {/* Un-modeled badge overlay */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="bg-black/75 px-3 py-1.5 rounded-full border border-amber-500/30 text-amber-200/90 font-mono text-xs tracking-wider uppercase shadow-lg">
+              Model coming
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Subdued watermark / tag */}
-      <div className="absolute bottom-2 right-3 pointer-events-none text-[9px] uppercase tracking-widest font-mono text-amber-200/40">
-        Archetype Prototype
+      <div className="absolute top-2 right-3 pointer-events-none text-[9px] uppercase tracking-widest font-mono text-amber-200/40">
+        {isModeled ? 'Archetype Anatomy' : 'Archetype Prototype'}
       </div>
     </div>
   );

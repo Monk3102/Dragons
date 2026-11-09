@@ -100,15 +100,16 @@ export const ExploreCreatureDetail: React.FC<ExploreCreatureDetailProps> = ({
           </div>
         </div>
 
-        {/* 3D Preview Canvas: Isolated Placeholder */}
+        {/* 3D Preview Canvas */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
-            <span>ARCHETYPAL GEOMETRY (PREVIEW PLACEHOLDER)</span>
+            <span>ARCHETYPAL GEOMETRY</span>
             <span className="text-[10px] text-amber-400/60">
               Isolated from World Space
             </span>
           </div>
           <CreaturePreviewCanvas
+            creatureId={creature.archetypeId || creature.id}
             creatureName={creature.name}
             color="#1c202a"
             accentColor="#c5a059"

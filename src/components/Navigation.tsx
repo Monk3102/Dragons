@@ -2,13 +2,15 @@ import React from 'react';
 import { Volume2, VolumeX, Database } from 'lucide-react';
 
 interface NavigationProps {
-  activeSection: 'world' | 'explore' | 'counsel';
-  onSelectSection: (section: 'world' | 'explore' | 'counsel') => void;
+  activeSection: 'world' | 'explore' | 'counsel' | 'wall';
+  onSelectSection: (section: 'world' | 'explore' | 'counsel' | 'wall') => void;
   audioActive: boolean;
   onToggleAudio: () => void;
   selectedDragonName: string | null;
   onReturnToWorld: () => void;
   onOpenBackup?: () => void;
+  shouldBackupReminder?: boolean;
+  backupTooltip?: string;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -19,6 +21,8 @@ export const Navigation: React.FC<NavigationProps> = ({
   selectedDragonName,
   onReturnToWorld,
   onOpenBackup,
+  shouldBackupReminder = false,
+  backupTooltip,
 }) => {
   return (
     <header className="fixed top-0 left-0 right-0 z-40 pointer-events-auto">
@@ -112,6 +116,31 @@ export const Navigation: React.FC<NavigationProps> = ({
             )}
           </button>
 
+          <button
+            onClick={() => onSelectSection(activeSection === 'wall' ? 'world' : 'wall')}
+            className={`group relative inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wider transition-all duration-300 cursor-pointer ${
+              activeSection === 'wall'
+                ? 'bg-[#c5a059]/20 text-amber-200 border border-[#c5a059]/60 shadow-[0_0_16px_rgba(197,160,89,0.3)]'
+                : 'bg-white/[0.03] text-slate-400 border border-white/10 hover:border-[#c5a059]/40 hover:text-amber-200 hover:bg-white/[0.07]'
+            }`}
+            aria-expanded={activeSection === 'wall'}
+            title="View the Wall of Fame of slain monsters"
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                activeSection === 'wall'
+                  ? 'bg-[#c5a059] shadow-[0_0_6px_#c5a059] scale-110'
+                  : 'bg-slate-500 group-hover:bg-[#c5a059]/70'
+              }`}
+            />
+            <span>Wall of Fame</span>
+            {activeSection === 'wall' && (
+              <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 bg-[#c5a059]/25 text-amber-300 rounded tracking-normal">
+                Open
+              </span>
+            )}
+          </button>
+
           {selectedDragonName && (
             <div className="hidden xl:flex items-center gap-2 text-slate-300">
               <span className="text-slate-600">/</span>
@@ -127,11 +156,17 @@ export const Navigation: React.FC<NavigationProps> = ({
           {onOpenBackup && (
             <button
               onClick={onOpenBackup}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono rounded-lg border border-[#c5a059]/30 bg-[#c5a059]/10 hover:bg-[#c5a059]/25 text-amber-200 transition-all cursor-pointer shadow-sm"
-              title="Backup, export, or restore Draco Animi bestiary data (JSON)"
+              className="relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono rounded-lg border border-[#c5a059]/30 bg-[#c5a059]/10 hover:bg-[#c5a059]/25 text-amber-200 transition-all cursor-pointer shadow-sm"
+              title={backupTooltip || "Backup, export, or restore Draco Animi bestiary data (JSON)"}
             >
               <Database className="w-3.5 h-3.5 text-amber-300" />
               <span className="hidden sm:inline">Backup & Archive</span>
+              {shouldBackupReminder && (
+                <span
+                  className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_#fbbf24] animate-pulse"
+                  aria-label="Backup reminder active"
+                />
+              )}
             </button>
           )}
 

@@ -1,21 +1,30 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { DragonProblem, Monster, Dial } from '../types';
-import { ArrowLeft, X, Clock } from 'lucide-react';
+import { ArrowLeft, X, Clock, Sword, Trash2 } from 'lucide-react';
 import { ageInDays, trendSinceSpawn } from '../utils/journeyFormat';
 import { JourneyTimeline } from './JourneyTimeline';
 import { UpdateMonsterForm } from './UpdateMonsterForm';
+import { SlayDialog } from './SlayDialog';
+import { ConfirmDialog } from './ConfirmDialog';
+import { useMonsters } from '../store/monsterStore';
 
 interface DragonOverlayProps {
   dragon: DragonProblem;
   monster?: Monster | null;
   onClose: () => void;
+  onSlaySuccess?: (slainMonster: Monster) => void;
 }
 
 export const DragonOverlay: React.FC<DragonOverlayProps> = ({
   dragon,
   monster,
   onClose,
+  onSlaySuccess,
 }) => {
+  const { deleteMonster } = useMonsters();
+  const [isSlayDialogOpen, setIsSlayDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
   // Extract dial values from monster record or attached dials
   const rawDials = (dragon as { dials?: { size?: Dial; distance?: Dial; ferocity?: Dial } }).dials;
   const size: Dial = monster?.size ?? rawDials?.size ?? Math.min(10, Math.max(1, Math.round((dragon.scale - 1.2) / 0.4))) as Dial;
@@ -240,7 +249,33 @@ export const DragonOverlay: React.FC<DragonOverlayProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-3 border-t border-white/10 bg-[#0b0d14]/95 flex items-center justify-end shrink-0">
+        <div className="p-3 border-t border-white/10 bg-[#0b0d14]/95 flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2">
+            {isAlive && monster && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsSlayDialogOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-100 bg-[#c5a059]/20 hover:bg-[#c5a059]/30 border border-[#c5a059]/50 rounded-lg transition-colors cursor-pointer shadow-sm"
+                  title="Confront and slay this monster to record your triumph"
+                >
+                  <Sword className="w-3.5 h-3.5 text-[#c5a059]" />
+                  <span>Slay this monster</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition-colors cursor-pointer"
+                  title="Delete this monster"
+                  aria-label={`Delete monster: ${dragon.name}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
+
           <button
             onClick={onClose}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors cursor-pointer"
@@ -250,6 +285,47 @@ export const DragonOverlay: React.FC<DragonOverlayProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Slay Monster Dialog */}
+      {monster && (
+        <SlayDialog
+          isOpen={isSlayDialogOpen}
+          monster={monster}
+          onClose={() => setIsSlayDialogOpen(false)}
+          onSlaySuccess={(slain) => {
+            setIsSlayDialogOpen(false);
+            onSlaySuccess?.(slain);
+          }}
+        />
+      )}
+
+      {/* Delete Alive Monster Confirmation Dialog */}
+      {monster && (
+        <ConfirmDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          onConfirm={() => {
+            deleteMonster(monster.id);
+            setIsDeleteDialogOpen(false);
+            onClose();
+          }}
+          title={`Delete "${dragon.name}"?`}
+          message={
+            <div className="space-y-1.5">
+              <p>
+                Are you sure you want to delete <strong className="text-white font-['Cinzel']">{dragon.name}</strong> from your bestiary?
+              </p>
+              <p className="text-rose-300 text-xs">
+                This action cannot be undone. We recommend exporting a backup first.
+              </p>
+            </div>
+          }
+          confirmText="Delete Monster"
+          cancelText="Cancel"
+          requireTypedConfirmation="DELETE"
+          isDanger={true}
+        />
+      )}
     </div>
   );
 };

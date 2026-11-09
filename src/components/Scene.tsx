@@ -1,6 +1,7 @@
 import React from 'react';
 import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
+import { Environment, Lightformer } from '@react-three/drei';
 import { DragonProblem } from '../types';
 import { Character } from './Character';
 import { DragonMesh } from './DragonMesh';
@@ -55,6 +56,8 @@ export const Scene: React.FC<SceneProps> = ({
           gl.outputColorSpace = THREE.SRGBColorSpace;
           // Set atmospheric void fog
           scene.fog = new THREE.FogExp2('#07090e', 0.016);
+          // Set environment intensity
+          (scene as any).environmentIntensity = 0.35;
 
           const canvas = gl.domElement;
           canvas.addEventListener('webglcontextlost', (event) => {
@@ -65,6 +68,24 @@ export const Scene: React.FC<SceneProps> = ({
           });
         }}
       >
+        {/* Baked Studio Environment for Subtle Reflections */}
+        <Environment frames={1} resolution={256}>
+          <Lightformer
+            form="rect"
+            intensity={0.5}
+            color="#c0d8f0"
+            position={[0, 10, 0]}
+            scale={[12, 12, 1]}
+            rotation={[Math.PI / 2, 0, 0]}
+          />
+          <Lightformer
+            form="rect"
+            intensity={0.6}
+            color="#f5c070"
+            position={[0, -2, -8]}
+            scale={[10, 2, 1]}
+          />
+        </Environment>
         {/* Sky/Ground Hemisphere Ambient Fill */}
         <hemisphereLight
           args={['#1c2635', '#090b0e', 1.1]}
