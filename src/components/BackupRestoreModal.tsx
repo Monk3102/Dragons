@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Download, Upload, ShieldCheck, AlertTriangle, X, CheckCircle, Database } from 'lucide-react';
-import { MonsterRecord } from '../types';
-import { getLocalBestiaryRecords, saveLocalBestiaryRecord, exportBestiaryToJson } from '../utils/localBestiary';
+import { getLocalBestiaryRecords, saveLocalBestiaryRecord } from '../utils/localBestiary';
 import { validateBackupJson, applyBackupImport, downloadCompleteBackup } from '../utils/localBackup';
 import { useMonsters } from '../store/monsterStore';
 

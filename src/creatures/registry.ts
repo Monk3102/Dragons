@@ -2,6 +2,7 @@ import { CreatureRecipe } from './types';
 import { dragonRecipe } from './recipes/dragon';
 import { trollRecipe } from './recipes/troll';
 import { hydraRecipe } from './recipes/hydra';
+import { sirensRecipe } from './recipes/sirens';
 
 /**
  * Fallback generic placeholder creature recipe:
@@ -76,6 +77,7 @@ export const RECIPES: Record<string, CreatureRecipe> = {
   [dragonRecipe.id]: dragonRecipe,
   [trollRecipe.id]: trollRecipe,
   [hydraRecipe.id]: hydraRecipe,
+  [sirensRecipe.id]: sirensRecipe,
 };
 
 /**

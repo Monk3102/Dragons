@@ -104,13 +104,6 @@ export interface ChatMessageItem {
   createdAt?: string;
 }
 
-export type ActiveView = 'world' | 'inspect' | 'notes';
-
-export interface CameraState {
-  position: [number, number, number];
-  target: [number, number, number];
-}
-
 /**
  * Dial value representing a subjective psychological metric from 1 to 10:
  * - size: 1 = tiny, 10 = huge.

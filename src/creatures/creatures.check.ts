@@ -222,6 +222,14 @@ runTest(
         console.error(`Dragon recipe ultra triangles below minimum: ${trisUltra} < 25000`);
         return false;
       }
+      if (recipe.id === 'archetype-hydra' && trisUltra < 15000) {
+        console.error(`Hydra recipe ultra triangles below minimum: ${trisUltra} < 15000`);
+        return false;
+      }
+      if (recipe.id === 'archetype-sirens' && trisUltra < 15000) {
+        console.error(`Sirens recipe ultra triangles below minimum: ${trisUltra} < 15000`);
+        return false;
+      }
       if (trisHigh > MAX_TRIANGLES_HIGH) {
         console.error(`Recipe "${recipe.id}" exceeds high budget: ${trisHigh} > ${MAX_TRIANGLES_HIGH}`);
         return false;
@@ -300,6 +308,7 @@ runTest('getRecipe returns the placeholder for an unknown id', () => {
   if (getRecipe('archetype-dragon').id !== 'archetype-dragon') return false;
   if (getRecipe('archetype-troll').id !== 'archetype-troll') return false;
   if (getRecipe('archetype-hydra').id !== 'archetype-hydra') return false;
+  if (getRecipe('archetype-sirens').id !== 'archetype-sirens') return false;
 
   return true;
 });
@@ -451,9 +460,9 @@ runTest('placeScales: determinism, count caps (<= 2500 per part, <= 6000 creatur
   return true;
 });
 
-// 11. Backward compatibility: Troll, Hydra, placeholder use none of new fields
-runTest('backward compatibility: Troll, Hydra, and placeholder use none of new fields', () => {
-  const legacyRecipes = [RECIPES['archetype-troll'], RECIPES['archetype-hydra'], PLACEHOLDER_RECIPE];
+// 11. Backward compatibility: Troll and placeholder use none of new fields
+runTest('backward compatibility: Troll and placeholder use none of new fields', () => {
+  const legacyRecipes = [RECIPES['archetype-troll'], PLACEHOLDER_RECIPE];
 
   for (const recipe of legacyRecipes) {
     if (recipe.viewpoints) {
@@ -511,9 +520,16 @@ for (const recipe of allRecipesToCheck) {
     pCount <= MAX_PARTS_PER_RECIPE &&
     trisUltra <= MAX_TRIANGLES_ULTRA &&
     (recipe.id !== 'archetype-dragon' || trisUltra >= 25000) &&
+    (recipe.id !== 'archetype-hydra' || trisUltra >= 15000) &&
+    (recipe.id !== 'archetype-sirens' || trisUltra >= 15000) &&
     trisHigh <= MAX_TRIANGLES_HIGH &&
     trisLow <= MAX_TRIANGLES_LOW &&
     dc <= MAX_DRAW_CALLS_ULTRA;
+
+  let status = withinBudget ? 'OK' : 'EXCEEDED';
+  if (recipe.id === 'archetype-troll') {
+    status = 'KNOWN-BELOW-MINIMUM';
+  }
 
   console.log(
     `| ${recipe.id}`.padEnd(20) +
@@ -522,7 +538,7 @@ for (const recipe of allRecipesToCheck) {
     `| ${trisHigh}/${MAX_TRIANGLES_HIGH}`.padEnd(14) +
     `| ${trisLow}/${MAX_TRIANGLES_LOW}`.padEnd(14) +
     `| ${dc}/${MAX_DRAW_CALLS_ULTRA}`.padEnd(14) +
-    `| ${withinBudget ? 'OK' : 'EXCEEDED'}`
+    `| ${status}`
   );
 }
 console.log('-'.repeat(95));

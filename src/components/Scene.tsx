@@ -8,6 +8,14 @@ import { DragonMesh } from './DragonMesh';
 import { VoidEnvironment } from './VoidEnvironment';
 import { CameraController } from './CameraController';
 
+const PerfProbe = import.meta.env.DEV
+  ? React.lazy(
+      new Function("return import('../perf/PerfProbe')") as () => Promise<{
+        default: React.ComponentType;
+      }>
+    )
+  : null;
+
 interface SceneProps {
   dragons: DragonProblem[];
   selectedDragonId: string | null;
@@ -145,6 +153,13 @@ export const Scene: React.FC<SceneProps> = ({
           cameraPreset={cameraPreset}
           onClearPreset={onClearPreset}
         />
+
+        {/* Development Telemetry Probe (zero production bundle footprint) */}
+        {import.meta.env.DEV && PerfProbe && (
+          <React.Suspense fallback={null}>
+            <PerfProbe />
+          </React.Suspense>
+        )}
       </Canvas>
     </div>
   );

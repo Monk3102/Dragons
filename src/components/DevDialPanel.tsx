@@ -4,6 +4,9 @@ import { ARCHETYPE_CATALOGUE } from '../data/archetypesCatalogue';
 import { Dial } from '../types';
 import { X, Plus, Trash2, Sliders } from 'lucide-react';
 
+import { devFlags } from '../perf/devFlags';
+import { generateBenchmarkMonsters } from '../perf/benchmark';
+
 // Unique marker to test dead-code elimination in production bundle
 export const DEV_PANEL_BUILD_MARKER = 'DEV_DIAL_PANEL_INTERNAL_DEBUG_ONLY';
 
@@ -14,6 +17,7 @@ interface DevDialPanelProps {
 export default function DevDialPanel({ onClose }: DevDialPanelProps) {
   const { monsters, updateDials, addMonster, deleteMonster } = useMonsters();
   const aliveMonsters = monsters.filter((m) => m.status === 'alive');
+  const [forcedTier, setForcedTierState] = React.useState<null | 'ultra' | 'high' | 'low'>(devFlags.forcedTier);
 
   const handleDialChange = (
     id: string,
@@ -56,6 +60,26 @@ export default function DevDialPanel({ onClose }: DevDialPanelProps) {
     });
   };
 
+  const handleSetMonstersCount = (count: number) => {
+    // First remove all sample monsters
+    monsters.forEach((m) => {
+      if (m.isSample) {
+        deleteMonster(m.id);
+      }
+    });
+
+    // Add generated monsters deterministically as in TASK 6
+    const specs = generateBenchmarkMonsters(count);
+    for (const spec of specs) {
+      addMonster(spec);
+    }
+  };
+
+  const handleSetForcedTier = (tier: null | 'ultra' | 'high' | 'low') => {
+    devFlags.forcedTier = tier;
+    setForcedTierState(tier);
+  };
+
   return (
     <div className="fixed top-16 left-6 z-40 w-84 max-h-[80vh] bg-[#0c1017]/95 border border-amber-500/30 rounded-xl shadow-2xl backdrop-blur-md flex flex-col text-slate-200 text-xs font-mono select-none animate-in fade-in duration-150">
       {/* Header */}
@@ -74,21 +98,101 @@ export default function DevDialPanel({ onClose }: DevDialPanelProps) {
       </div>
 
       {/* Action Buttons */}
-      <div className="p-3 border-b border-white/10 grid grid-cols-2 gap-2 bg-white/[0.02]">
-        <button
-          onClick={handleAddTestMonster}
-          className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 rounded-lg transition-colors cursor-pointer"
-        >
-          <Plus className="w-3 h-3" />
-          <span>Add test monster</span>
-        </button>
-        <button
-          onClick={handleRemoveAllSampleMonsters}
-          className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-red-950/40 hover:bg-red-900/50 text-red-300 border border-red-500/30 rounded-lg transition-colors cursor-pointer"
-        >
-          <Trash2 className="w-3 h-3" />
-          <span>Remove samples</span>
-        </button>
+      <div className="p-3 border-b border-white/10 space-y-2 bg-white/[0.02]">
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={handleAddTestMonster}
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 rounded-lg transition-colors cursor-pointer"
+          >
+            <Plus className="w-3 h-3" />
+            <span>Add test monster</span>
+          </button>
+          <button
+            onClick={handleRemoveAllSampleMonsters}
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-red-950/40 hover:bg-red-900/50 text-red-300 border border-red-500/30 rounded-lg transition-colors cursor-pointer"
+          >
+            <Trash2 className="w-3 h-3" />
+            <span>Remove samples</span>
+          </button>
+        </div>
+
+        {/* Set to N monsters (TASK 7) */}
+        <div>
+          <div className="text-[10px] text-slate-400 mb-1 uppercase tracking-wider">Benchmark Population:</div>
+          <div className="grid grid-cols-4 gap-1">
+            <button
+              onClick={() => handleSetMonstersCount(1)}
+              className="px-1.5 py-1 bg-white/5 hover:bg-white/10 text-slate-300 rounded border border-white/10 transition-colors cursor-pointer text-center"
+            >
+              Set to 1
+            </button>
+            <button
+              onClick={() => handleSetMonstersCount(5)}
+              className="px-1.5 py-1 bg-white/5 hover:bg-white/10 text-slate-300 rounded border border-white/10 transition-colors cursor-pointer text-center"
+            >
+              5 monsters
+            </button>
+            <button
+              onClick={() => handleSetMonstersCount(10)}
+              className="px-1.5 py-1 bg-white/5 hover:bg-white/10 text-slate-300 rounded border border-white/10 transition-colors cursor-pointer text-center"
+            >
+              10 monsters
+            </button>
+            <button
+              onClick={() => handleSetMonstersCount(20)}
+              className="px-1.5 py-1 bg-white/5 hover:bg-white/10 text-slate-300 rounded border border-white/10 transition-colors cursor-pointer text-center"
+            >
+              20 monsters
+            </button>
+          </div>
+        </div>
+
+        {/* Force tier: Auto / Ultra / High / Low (TASK 7) */}
+        <div>
+          <div className="text-[10px] text-slate-400 mb-1 uppercase tracking-wider">Force tier:</div>
+          <div className="grid grid-cols-4 gap-1">
+            <button
+              onClick={() => handleSetForcedTier(null)}
+              className={`px-1.5 py-1 rounded border transition-colors cursor-pointer text-center ${
+                forcedTier === null
+                  ? 'bg-amber-500/30 text-amber-200 border-amber-500/50 font-bold'
+                  : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              Auto
+            </button>
+            <button
+              onClick={() => handleSetForcedTier('ultra')}
+              className={`px-1.5 py-1 rounded border transition-colors cursor-pointer text-center ${
+                forcedTier === 'ultra'
+                  ? 'bg-purple-500/30 text-purple-200 border-purple-500/50 font-bold'
+                  : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              Ultra
+            </button>
+            <button
+              onClick={() => handleSetForcedTier('high')}
+              className={`px-1.5 py-1 rounded border transition-colors cursor-pointer text-center ${
+                forcedTier === 'high'
+                  ? 'bg-blue-500/30 text-blue-200 border-blue-500/50 font-bold'
+                  : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              High
+            </button>
+            <button
+              onClick={() => handleSetForcedTier('low')}
+              className={`px-1.5 py-1 rounded border transition-colors cursor-pointer text-center ${
+                forcedTier === 'low'
+                  ? 'bg-emerald-500/30 text-emerald-200 border-emerald-500/50 font-bold'
+                  : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              Low
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Monsters Dial List */}

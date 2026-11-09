@@ -1,4 +1,4 @@
-import { MonsterRecord, MonsterStatus } from '../../types';
+import { MonsterStatus } from '../../types';
 
 export type ExploreMode = 'creatures' | 'discover';
 export type FilterCategory = 'all' | 'catalogue' | 'foundational' | 'saved';

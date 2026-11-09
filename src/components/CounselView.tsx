@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { CounselChat } from './counsel/CounselChat';
 import { SpawnPanel } from './counsel/SpawnPanel';
 import { Proposal } from '../../server/counsel';
-import { Compass, X, ShieldAlert, ArrowLeft } from 'lucide-react';
+import { Compass, ShieldAlert, ArrowLeft } from 'lucide-react';
 
 interface CounselViewProps {
   isOpen: boolean;

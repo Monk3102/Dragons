@@ -59,18 +59,3 @@ export function getLastExportTime(): string | null {
     return null;
   }
 }
-
-/**
- * Safely saves the last export ISO timestamp into browser localStorage.
- */
-export function setLastExportTime(isoString?: string): void {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return;
-  }
-  try {
-    const timestamp = isoString || new Date().toISOString();
-    window.localStorage.setItem(LAST_EXPORT_STORAGE_KEY, timestamp);
-  } catch (err) {
-    console.warn('[backupReminder] Failed to save last export time to localStorage:', err);
-  }
-}

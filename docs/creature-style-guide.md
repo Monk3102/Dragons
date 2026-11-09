@@ -31,3 +31,9 @@
 - **Bilateral Asymmetry**: Apply minor positional and angular perturbations on paired appendages (e.g., horn curvature, claw angles, wing flap phases) to avoid robotic rigidity.
 - **Budget Tuning**: Keep total parts <= 100, draw calls <= 30, and triangles within [25k, 90k] (ultra), <= 35k (high), and <= 6k (low).
 
+## 6. Multi-Neck & Multi-Figure Architectures (Hydra & Sirens)
+- **Multi-Neck Hydra**: Anchor multiple cervical neck tubes to a single coiled serpentine base. Stagger neck curves, head elevations, and yaw angles asymmetrically. Use `serpentHead` helper assemblies and instanced spine ridges to maintain high anatomical fidelity.
+- **Multi-Figure Sirens**: Arrange spectral triads in an apex-and-flank formation with yaw canting. Transition each figure from a slender torso into flowing aquatic/mist ribbon tubes. Anchor all figures to a central resonant glow core with planar sound wave rings.
+- **Draw Call Discipline**: Scale plates (`scales`) incur one instanced draw call per tube. Reserve scale plates for primary structural tubes (torsos, main ribbons) and leave secondary streamers smooth or `fine: true` to reliably satisfy the `<= 30` draw call budget.
+
+

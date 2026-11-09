@@ -32,6 +32,18 @@ const DevDialPanel = import.meta.env.DEV
   ? React.lazy(new Function("return import('./components/DevDialPanel')") as () => Promise<{ default: React.ComponentType<{ onClose: () => void }> }>)
   : null;
 
+const PerfOverlay = import.meta.env.DEV
+  ? React.lazy(
+      new Function("return import('./perf/PerfOverlay')") as () => Promise<{
+        default: React.ComponentType<{
+          onSelectDragon?: (id: string) => void;
+          onDeselectDragon?: () => void;
+          isAnyModalOpen?: boolean;
+        }>;
+      }>
+    )
+  : null;
+
 export default function App() {
   const { monsters } = useMonsters();
 
@@ -249,6 +261,17 @@ export default function App() {
       {import.meta.env.DEV && DevDialPanel && isDevPanelOpen && (
         <React.Suspense fallback={null}>
           <DevDialPanel onClose={() => setIsDevPanelOpen(false)} />
+        </React.Suspense>
+      )}
+
+      {/* Performance Telemetry Overlay (Loaded exclusively in dev mode via 'P' key) */}
+      {import.meta.env.DEV && PerfOverlay && (
+        <React.Suspense fallback={null}>
+          <PerfOverlay
+            onSelectDragon={handleSelectDragon}
+            onDeselectDragon={handleDeselectDragon}
+            isAnyModalOpen={activeSection !== 'world' || isBackupModalOpen}
+          />
         </React.Suspense>
       )}
     </div>

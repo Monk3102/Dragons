@@ -1,4 +1,4 @@
-import { Dial, JourneyEntry } from '../types';
+import { JourneyEntry } from '../types';
 
 export type DialName = 'size' | 'distance' | 'ferocity';
 export type Direction = 'easing' | 'worsening';

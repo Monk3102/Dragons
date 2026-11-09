@@ -6,7 +6,7 @@ import { computeWallStats, sortSlain, filterByCreature, getFightLengthInDays, Wa
 import { formatDateTime } from '../utils/journeyFormat';
 import { JourneyTimeline } from './JourneyTimeline';
 import { ConfirmDialog } from './ConfirmDialog';
-import { Trophy, X, Trash2, ChevronDown, ChevronUp, Calendar, Clock, BookOpen, ShieldAlert } from 'lucide-react';
+import { Trophy, X, Trash2, ChevronDown, ChevronUp, Calendar, Clock, BookOpen } from 'lucide-react';
 
 export interface WallOfFameViewProps {
   isOpen: boolean;
