@@ -23,7 +23,15 @@ export const DragonMesh: React.FC<DragonMeshProps> = ({
   const [isHovered, setIsHovered] = useState(false);
 
   // Animated refs for smooth damping transition over ~1s (lambda around 3)
-  const currentScale = useRef<number>(dragon.scale);
+  // If newly spawned (< 5s ago), start animated scale at 5% of target
+  const isNewlySpawned = useMemo(() => {
+    const createdStr = (dragon as any).createdAt;
+    if (!createdStr) return false;
+    const time = Date.parse(createdStr);
+    return !isNaN(time) && Date.now() - time < 5000;
+  }, [dragon.id, (dragon as any).createdAt]);
+
+  const currentScale = useRef<number>(isNewlySpawned ? dragon.scale * 0.05 : dragon.scale);
   const currentPosX = useRef<number>(dragon.position[0]);
   const currentPosY = useRef<number>(dragon.position[1]);
   const currentPosZ = useRef<number>(dragon.position[2]);

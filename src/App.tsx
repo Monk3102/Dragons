@@ -14,6 +14,10 @@ const ExploreView = React.lazy(() =>
   import('./components/ExploreView').then((m) => ({ default: m.ExploreView }))
 );
 
+const CounselView = React.lazy(() =>
+  import('./components/CounselView').then((m) => ({ default: m.CounselView }))
+);
+
 // Dynamic import strictly in development mode for zero production bundle footprint
 const DevDialPanel = import.meta.env.DEV
   ? React.lazy(new Function("return import('./components/DevDialPanel')") as any)
@@ -28,13 +32,15 @@ export default function App() {
     const layout = layoutMonsters(alive);
     return alive.map((m) => {
       const pos = layout.get(m.id)!;
-      return monsterToDragonProblem(m, pos);
+      const d = monsterToDragonProblem(m, pos);
+      (d as any).createdAt = m.createdAt;
+      return d;
     });
   }, [monsters]);
 
   const [selectedDragonId, setSelectedDragonId] = useState<string | null>(null);
   const [cameraPreset, setCameraPreset] = useState<'overview' | 'hero' | 'inspect' | null>('overview');
-  const [activeSection, setActiveSection] = useState<'world' | 'explore'>('world');
+  const [activeSection, setActiveSection] = useState<'world' | 'explore' | 'counsel'>('world');
   const [audioActive, setAudioActive] = useState<boolean>(false);
   const [isDockCollapsed, setIsDockCollapsed] = useState<boolean>(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState<boolean>(false);
@@ -69,11 +75,13 @@ export default function App() {
       if (e.key === 'Escape') {
         if (activeSection === 'explore') {
           setActiveSection('world');
+        } else if (activeSection === 'counsel') {
+          // Handled inside CounselView with dirty-check confirmation dialog
         } else if (selectedDragonId) {
           handleDeselectDragon();
         }
       } else if ((e.key === 'h' || e.key === 'H') && !isTyping) {
-        if (activeSection !== 'explore') {
+        if (activeSection !== 'explore' && activeSection !== 'counsel') {
           setIsDockCollapsed((prev) => !prev);
         }
       } else if ((e.key === 'd' || e.key === 'D') && !isTyping && import.meta.env.DEV) {
@@ -87,7 +95,7 @@ export default function App() {
 
   return (
     <div className="relative w-screen h-screen bg-[#07090e] overflow-hidden font-sans text-slate-100">
-      {/* 3D WebGL Canvas Layer */}
+      {/* 3D WebGL Canvas Layer (rendering paused while in counsel view to conserve GPU) */}
       <Scene
         dragons={dragons}
         selectedDragonId={selectedDragonId}
@@ -95,10 +103,10 @@ export default function App() {
         onDeselectDragon={handleDeselectDragon}
         cameraPreset={cameraPreset}
         onClearPreset={() => setCameraPreset(null)}
-        isActive={true}
+        isActive={activeSection !== 'counsel'}
       />
 
-      {/* Top Navigation Bar with World Space, Bestiary, and Backup & Archive */}
+      {/* Top Navigation Bar with World Space, Counsel, Bestiary, and Backup & Archive */}
       <Navigation
         activeSection={activeSection}
         onSelectSection={(section) => setActiveSection(section)}
@@ -142,6 +150,18 @@ export default function App() {
           isOpen={activeSection === 'explore'}
           onClose={() => setActiveSection('world')}
           initialSelectedId={selectedDragonId}
+        />
+      </React.Suspense>
+
+      {/* Counsel & Spawn Overlay */}
+      <React.Suspense fallback={null}>
+        <CounselView
+          isOpen={activeSection === 'counsel'}
+          onClose={() => setActiveSection('world')}
+          onMonsterSpawned={(newId) => {
+            setActiveSection('world');
+            handleSelectDragon(newId);
+          }}
         />
       </React.Suspense>
 

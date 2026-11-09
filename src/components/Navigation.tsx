@@ -2,8 +2,8 @@ import React from 'react';
 import { Volume2, VolumeX, Database } from 'lucide-react';
 
 interface NavigationProps {
-  activeSection: 'world' | 'explore';
-  onSelectSection: (section: 'world' | 'explore') => void;
+  activeSection: 'world' | 'explore' | 'counsel';
+  onSelectSection: (section: 'world' | 'explore' | 'counsel') => void;
   audioActive: boolean;
   onToggleAudio: () => void;
   selectedDragonName: string | null;
@@ -60,6 +60,31 @@ export const Navigation: React.FC<NavigationProps> = ({
               }`}
             />
             <span>World Space</span>
+          </button>
+
+          <button
+            onClick={() => onSelectSection(activeSection === 'counsel' ? 'world' : 'counsel')}
+            className={`group relative inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wider transition-all duration-300 cursor-pointer ${
+              activeSection === 'counsel'
+                ? 'bg-indigo-400/15 text-indigo-200 border border-indigo-400/50 shadow-[0_0_16px_rgba(129,140,248,0.25)]'
+                : 'bg-white/[0.03] text-slate-400 border border-white/10 hover:border-indigo-300/40 hover:text-indigo-200 hover:bg-white/[0.07]'
+            }`}
+            aria-expanded={activeSection === 'counsel'}
+            title="Seek counsel with the Sentry and manifest a new monster"
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                activeSection === 'counsel'
+                  ? 'bg-indigo-400 shadow-[0_0_6px_#818cf8] scale-110'
+                  : 'bg-slate-500 group-hover:bg-indigo-300/70'
+              }`}
+            />
+            <span>Counsel</span>
+            {activeSection === 'counsel' && (
+              <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 bg-indigo-400/20 text-indigo-300 rounded tracking-normal">
+                Active
+              </span>
+            )}
           </button>
 
           <button

@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
+import { registerCounselRoutes } from './server/counsel';
 
 dotenv.config();
 
@@ -172,6 +173,9 @@ app.post('/api/gemini/chat', async (req, res) => {
     res.status(500).json({ error: clientMessage });
   }
 });
+
+// Multi-turn Counsel & Creature Manifestation Endpoint
+registerCounselRoutes(app, ai);
 
 // Setup Vite middleware in dev or static files in production
 async function startServer() {
