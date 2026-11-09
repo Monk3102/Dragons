@@ -128,7 +128,7 @@ function createCrackEmissive(maxAnisotropy?: number): THREE.CanvasTexture {
     const gy = Math.floor(y / cellSize);
     for (let x = 0; x < size; x++) {
       const gx = Math.floor(x / cellSize);
-      let d1 = Infinity, d2 = Infinity;
+      let d1Sq = Infinity, d2Sq = Infinity;
 
       for (let oy = -1; oy <= 1; oy++) {
         const ny = (gy + oy + grid) % grid, offY = oy * cellSize;
@@ -139,12 +139,13 @@ function createCrackEmissive(maxAnisotropy?: number): THREE.CanvasTexture {
           if (dx > size * 0.5) dx = size - dx;
           let dy = Math.abs(y - (p[1] + offY));
           if (dy > size * 0.5) dy = size - dy;
-          const dist = Math.hypot(dx, dy);
-          if (dist < d1) { d2 = d1; d1 = dist; }
-          else if (dist < d2) { d2 = dist; }
+          const distSq = dx * dx + dy * dy;
+          if (distSq < d1Sq) { d2Sq = d1Sq; d1Sq = distSq; }
+          else if (distSq < d2Sq) { d2Sq = distSq; }
         }
       }
 
+      const d1 = Math.sqrt(d1Sq), d2 = Math.sqrt(d2Sq);
       const diff = d2 - d1;
       const b = diff < thresh ? Math.round(Math.pow(1.0 - diff / thresh, 2.2) * 255) : 0;
       const i = (y * size + x) * 4;
@@ -194,10 +195,52 @@ function createMembraneVeins(maxAnisotropy?: number): THREE.CanvasTexture {
 }
 
 export function getCreatureTextures(maxAnisotropy = 8) {
-  if (!_cache.scaleNormalMap) _cache.scaleNormalMap = createScaleNormalMap(maxAnisotropy);
-  if (!_cache.skinBump) _cache.skinBump = createSkinBump(maxAnisotropy);
-  if (!_cache.crackEmissive) _cache.crackEmissive = createCrackEmissive(maxAnisotropy);
-  if (!_cache.membraneVeins) _cache.membraneVeins = createMembraneVeins(maxAnisotropy);
+  const isDev = Boolean(typeof import.meta !== 'undefined' && import.meta.env?.DEV);
+  let totalTime = 0;
+
+  if (!_cache.scaleNormalMap) {
+    const t0 = isDev ? performance.now() : 0;
+    _cache.scaleNormalMap = createScaleNormalMap(maxAnisotropy);
+    if (isDev) {
+      const elapsed = performance.now() - t0;
+      totalTime += elapsed;
+      console.log(`[textures] scaleNormalMap generated in ${elapsed.toFixed(1)}ms`);
+    }
+  }
+
+  if (!_cache.skinBump) {
+    const t0 = isDev ? performance.now() : 0;
+    _cache.skinBump = createSkinBump(maxAnisotropy);
+    if (isDev) {
+      const elapsed = performance.now() - t0;
+      totalTime += elapsed;
+      console.log(`[textures] skinBump generated in ${elapsed.toFixed(1)}ms`);
+    }
+  }
+
+  if (!_cache.crackEmissive) {
+    const t0 = isDev ? performance.now() : 0;
+    _cache.crackEmissive = createCrackEmissive(maxAnisotropy);
+    if (isDev) {
+      const elapsed = performance.now() - t0;
+      totalTime += elapsed;
+      console.log(`[textures] crackEmissive generated in ${elapsed.toFixed(1)}ms`);
+    }
+  }
+
+  if (!_cache.membraneVeins) {
+    const t0 = isDev ? performance.now() : 0;
+    _cache.membraneVeins = createMembraneVeins(maxAnisotropy);
+    if (isDev) {
+      const elapsed = performance.now() - t0;
+      totalTime += elapsed;
+      console.log(`[textures] membraneVeins generated in ${elapsed.toFixed(1)}ms`);
+    }
+  }
+
+  if (isDev && totalTime > 0) {
+    console.log(`[textures] Total procedural texture generation time: ${totalTime.toFixed(1)}ms (target: < 400ms)`);
+  }
 
   return {
     scaleNormalMap: _cache.scaleNormalMap,

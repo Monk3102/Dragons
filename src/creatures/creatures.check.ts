@@ -69,9 +69,14 @@ export function estimateTriangles(recipe: CreatureRecipe, tier: DetailTier = 'hi
     const count = part.repeat ? part.repeat.count : 1;
     total += baseTris * count;
 
-    // Scale plates instanced on tubes (rendered only at ultra tier)
-    if (tier === 'ultra' && part.tube?.scales) {
-      const scaleCount = Math.min(MAX_SCALES_PER_PART, Math.max(0, part.tube.scales.count));
+    // Scale plates instanced on tubes (full at ultra, 35% at high, none at low)
+    if (part.tube?.scales) {
+      let scaleCount = 0;
+      if (tier === 'ultra') {
+        scaleCount = Math.min(MAX_SCALES_PER_PART, Math.max(0, part.tube.scales.count));
+      } else if (tier === 'high') {
+        scaleCount = Math.round(Math.min(MAX_SCALES_PER_PART, Math.max(0, part.tube.scales.count)) * 0.35);
+      }
       total += scaleCount * 2; // Diamond quad = 2 triangles
     }
   }

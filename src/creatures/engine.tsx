@@ -4,7 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import { CreatureRecipe, Part, TubeParams, DetailTier } from './types';
 import { ferocityToT, partScale } from './ferocity';
 import { valueNoise3D, interpolateProfile } from './noise';
-import { placeScales, CurveSample } from './scales';
+import { placeScales, CurveSample, MAX_SCALES_PER_PART, MAX_SCALES_PER_CREATURE } from './scales';
 import { getCreatureTextures } from './textures';
 
 export interface CreatureBodyProps {
@@ -77,16 +77,18 @@ function releaseCustomGeometry(key: string) {
   }
 }
 
-function buildTubeGeometry(tube: TubeParams, tier: DetailTier) {
+function buildTubeGeometry(tube: TubeParams, tier: DetailTier, texScale?: [number, number]) {
   const radSeg = tier === 'ultra' ? 20 : tier === 'high' ? 10 : 5;
   const tubSeg = tier === 'ultra' ? 96 : tier === 'high' ? 28 : 12;
   const vPts = tube.points.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
   const curve = new THREE.CatmullRomCurve3(vPts);
   const frames = curve.computeFrenetFrames(tubSeg, false);
 
-  const verts: number[] = [], norms: number[] = [], idxs: number[] = [];
+  const verts: number[] = [], norms: number[] = [], uvs: number[] = [], idxs: number[] = [];
   const curveSamples: CurveSample[] = [];
   const aspectSqrt = Math.sqrt(tube.aspect || 1.0);
+  const uTexRep = texScale ? texScale[1] : 1;
+  const vTexRep = texScale ? texScale[0] : 1;
 
   const radiusAt = (u: number) => {
     const pM = tube.radiusProfile ? interpolateProfile(tube.radiusProfile, u) : 1.0;
@@ -119,6 +121,7 @@ function buildTubeGeometry(tube: TubeParams, tier: DetailTier) {
       }
       verts.push(vp.x, vp.y, vp.z);
       norms.push(nv.x, nv.y, nv.z);
+      uvs.push((j / radSeg) * vTexRep, u * uTexRep);
     }
   }
 
@@ -133,20 +136,33 @@ function buildTubeGeometry(tube: TubeParams, tier: DetailTier) {
   const geom = new THREE.BufferGeometry();
   geom.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
   geom.setAttribute('normal', new THREE.Float32BufferAttribute(norms, 3));
+  geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geom.setIndex(idxs);
   return { geometry: geom, curveSamples, radiusAt };
 }
 
 function buildMembraneGeometry(polygon: [number, number][]): THREE.BufferGeometry {
-  const verts: number[] = [], norms: number[] = [], idxs: number[] = [];
+  const verts: number[] = [], norms: number[] = [], uvs: number[] = [], idxs: number[] = [];
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (let i = 0; i < polygon.length; i++) {
+    minX = Math.min(minX, polygon[i][0]);
+    maxX = Math.max(maxX, polygon[i][0]);
+    minY = Math.min(minY, polygon[i][1]);
+    maxY = Math.max(maxY, polygon[i][1]);
+  }
+  const spanX = maxX - minX || 1.0;
+  const spanY = maxY - minY || 1.0;
+
   for (let i = 0; i < polygon.length; i++) {
     verts.push(polygon[i][0], polygon[i][1], 0);
     norms.push(0, 0, 1);
+    uvs.push((polygon[i][0] - minX) / spanX, (polygon[i][1] - minY) / spanY);
   }
   const off = polygon.length;
   for (let i = 0; i < polygon.length; i++) {
     verts.push(polygon[i][0], polygon[i][1], 0);
     norms.push(0, 0, -1);
+    uvs.push((polygon[i][0] - minX) / spanX, (polygon[i][1] - minY) / spanY);
   }
   for (let i = 1; i < polygon.length - 1; i++) {
     idxs.push(0, i, i + 1, off, off + i + 1, off + i);
@@ -154,6 +170,7 @@ function buildMembraneGeometry(polygon: [number, number][]): THREE.BufferGeometr
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(norms, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   g.setIndex(idxs);
   return g;
 }
@@ -195,7 +212,7 @@ export const CreatureBody: React.FC<CreatureBodyProps> = ({
       if (p.shape === 'tube' && p.tube && p.tube.points.length >= 3) {
         const k = `${recipe.id}-${p.id}-${tier}`;
         keys.push(k);
-        const e = getOrCreateCustomGeometry(k, () => buildTubeGeometry(p.tube!, tier));
+        const e = getOrCreateCustomGeometry(k, () => buildTubeGeometry(p.tube!, tier, p.texScale));
         geomMap.set(p.id, e.geometry);
         if (e.curveSamples && e.radiusAt) metaMap.set(p.id, { curveSamples: e.curveSamples, radiusAt: e.radiusAt });
       } else if (p.shape === 'membrane' && p.polygon && p.polygon.length >= 3) {
@@ -348,13 +365,18 @@ export const CreatureBody: React.FC<CreatureBodyProps> = ({
 
   useLayoutEffect(() => {
     if (tier === 'low') return;
+    let creatureScaleBudget = MAX_SCALES_PER_CREATURE;
     scaleTubeParts.forEach((part) => {
       const iMesh = scaleMeshRefs.current.get(part.id);
       const meta = tubeMeta.get(part.id);
       if (!iMesh || !part.tube?.scales || !meta) return;
 
       const spec = part.tube.scales;
-      const scaleCount = tier === 'ultra' ? spec.count : Math.round(spec.count * 0.35);
+      const baseCount = tier === 'ultra' ? spec.count : Math.round(spec.count * 0.35);
+      const scaleCount = Math.min(MAX_SCALES_PER_PART, Math.min(creatureScaleBudget, baseCount));
+      creatureScaleBudget -= scaleCount;
+      if (scaleCount <= 0) return;
+
       const placed = placeScales({ ...spec, count: scaleCount }, meta.curveSamples, meta.radiusAt);
 
       for (let i = 0; i < placed.count; i++) {
@@ -436,7 +458,8 @@ export const CreatureBody: React.FC<CreatureBodyProps> = ({
         if (!geom) return null;
         const mat = getMaterial(part);
         const hasScales = part.shape === 'tube' && Boolean(part.tube?.scales) && tier !== 'low';
-        const scaleCount = hasScales ? (tier === 'ultra' ? part.tube!.scales!.count : Math.round(part.tube!.scales!.count * 0.35)) : 0;
+        const rawScaleCount = hasScales ? (tier === 'ultra' ? part.tube!.scales!.count : Math.round(part.tube!.scales!.count * 0.35)) : 0;
+        const scaleCount = Math.min(MAX_SCALES_PER_PART, rawScaleCount);
 
         return (
           <group

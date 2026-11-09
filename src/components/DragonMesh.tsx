@@ -9,8 +9,10 @@ import { DetailTier } from '../creatures/types';
 const DISTANCE_ULTRA_THRESHOLD = 40;
 const DISTANCE_HIGH_THRESHOLD = 90;
 const HYSTERESIS_BUFFER = 4;
+const CHECK_FRAME_INTERVAL = 15;
+const MAX_ULTRA_NEAREST = 2;
 
-// Shared distance tracker to determine top 2 closest creatures to camera
+// Shared distance tracker to determine top closest creatures to camera
 const monsterDistances = new Map<string, number>();
 
 interface DragonMeshProps {
@@ -71,13 +73,13 @@ export const DragonMesh: React.FC<DragonMeshProps> = ({
 
     // Check camera distance every 15 frames with hysteresis
     frameCountRef.current++;
-    if (frameCountRef.current % 15 === 0) {
+    if (frameCountRef.current % CHECK_FRAME_INTERVAL === 0) {
       const dist = state.camera.position.distanceTo(rootRef.current.position);
       monsterDistances.set(dragon.id, dist);
 
       // Determine top 2 closest creatures
       const sortedEntries = Array.from(monsterDistances.entries()).sort((a, b) => a[1] - b[1]);
-      const isTopTwo = sortedEntries.slice(0, 2).some((entry) => entry[0] === dragon.id);
+      const isTopTwo = sortedEntries.slice(0, MAX_ULTRA_NEAREST).some((entry) => entry[0] === dragon.id);
 
       if (isSelected) {
         if (detailLevel !== 'ultra') setDetailLevel('ultra');

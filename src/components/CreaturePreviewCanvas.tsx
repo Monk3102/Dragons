@@ -1,9 +1,11 @@
 import React, { useRef, useMemo, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
+import { Environment, Lightformer } from '@react-three/drei';
 import { CreatureBody } from '../creatures/engine';
 import { getRecipe, hasRecipe, PLACEHOLDER_RECIPE } from '../creatures/registry';
 import { CreatureRecipe, DetailTier } from '../creatures/types';
+import { LookName } from '../creatures/ferocity';
 
 interface CameraViewRigProps {
   view: 'full' | 'head' | 'wing';
@@ -51,6 +53,8 @@ interface RotatingCreatureProps {
   color?: string;
   accentColor?: string;
   detailLevel?: DetailTier;
+  wireframe?: boolean;
+  silhouetteMode?: boolean;
 }
 
 function RotatingCreature({
@@ -60,6 +64,8 @@ function RotatingCreature({
   color,
   accentColor,
   detailLevel = 'high',
+  wireframe = false,
+  silhouetteMode = false,
 }: RotatingCreatureProps) {
   const groupRef = useRef<THREE.Group>(null);
 
@@ -80,6 +86,8 @@ function RotatingCreature({
         ferocity={ferocity}
         detailLevel={detailLevel}
         bobbingSpeed={0.8}
+        wireframe={wireframe}
+        silhouetteMode={silhouetteMode}
       />
     </group>
   );
@@ -88,9 +96,13 @@ function RotatingCreature({
 function RotatingPlaceholder({
   color,
   accentColor,
+  wireframe = false,
+  silhouetteMode = false,
 }: {
   color?: string;
   accentColor?: string;
+  wireframe?: boolean;
+  silhouetteMode?: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
 
@@ -111,6 +123,8 @@ function RotatingPlaceholder({
         ferocity={5}
         detailLevel="high"
         bobbingSpeed={0.8}
+        wireframe={wireframe}
+        silhouetteMode={silhouetteMode}
       />
     </group>
   );
@@ -121,23 +135,33 @@ interface DevControlsProps {
   setDevTier: (t: 'auto' | DetailTier) => void;
   devView: 'full' | 'head' | 'wing';
   setDevView: (v: 'full' | 'head' | 'wing') => void;
+  devLook: LookName;
+  setDevLook: (l: LookName) => void;
+  wireframe: boolean;
+  setWireframe: React.Dispatch<React.SetStateAction<boolean>>;
+  silhouette: boolean;
+  setSilhouette: React.Dispatch<React.SetStateAction<boolean>>;
   recipe: CreatureRecipe;
   onSavePng: () => void;
 }
 
-let DevControlsComponent: React.FC<DevControlsProps> | null = null;
-if (import.meta.env.DEV) {
-  DevControlsComponent = function DevControls({
-    devTier,
-    setDevTier,
-    devView,
-    setDevView,
-    recipe,
-    onSavePng,
-  }: DevControlsProps) {
-    return (
-      <div className="absolute top-2 left-2 z-10 flex flex-wrap items-center gap-1.5 bg-black/80 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 text-[10px] font-mono text-slate-300">
-        <span className="text-amber-400 font-semibold mr-1">TIER:</span>
+const DevControls = import.meta.env.DEV
+  ? ({
+      devTier,
+      setDevTier,
+      devView,
+      setDevView,
+      devLook,
+      setDevLook,
+      wireframe,
+      setWireframe,
+      silhouette,
+      setSilhouette,
+      recipe,
+      onSavePng,
+    }: DevControlsProps) => (
+      <div className="absolute top-2 left-2 z-10 flex flex-wrap items-center gap-1.5 bg-black/85 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-white/10 text-[10px] font-mono text-slate-300 shadow-xl max-w-[95%]">
+        <span className="text-amber-400 font-semibold mr-0.5">DEV_TIER_TOOL:</span>
         {(['auto', 'ultra', 'high', 'low'] as const).map((t) => (
           <button
             key={t}
@@ -151,7 +175,7 @@ if (import.meta.env.DEV) {
           </button>
         ))}
 
-        <span className="text-amber-400 font-semibold ml-2 mr-1">VIEW:</span>
+        <span className="text-amber-400 font-semibold ml-1.5 mr-0.5">VIEW:</span>
         <button
           type="button"
           onClick={() => setDevView('full')}
@@ -182,17 +206,51 @@ if (import.meta.env.DEV) {
           Wing
         </button>
 
+        <span className="text-amber-400 font-semibold ml-1.5 mr-0.5">LOOK:</span>
+        {(['mild', 'menacing', 'ferocious'] as const).map((l) => (
+          <button
+            key={l}
+            type="button"
+            onClick={() => setDevLook(l)}
+            className={`px-1.5 py-0.5 rounded cursor-pointer capitalize ${
+              devLook === l ? 'bg-[#c5a059] text-black font-bold' : 'hover:bg-white/10 text-slate-400'
+            }`}
+          >
+            {l}
+          </button>
+        ))}
+
+        <div className="h-3 w-px bg-white/20 mx-1" />
+
+        <button
+          type="button"
+          onClick={() => setSilhouette((prev) => !prev)}
+          className={`px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
+            silhouette ? 'bg-amber-400 text-black font-bold' : 'hover:bg-white/10 text-slate-400'
+          }`}
+        >
+          Silhouette
+        </button>
+        <button
+          type="button"
+          onClick={() => setWireframe((prev) => !prev)}
+          className={`px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
+            wireframe ? 'bg-cyan-400 text-black font-bold' : 'hover:bg-white/10 text-slate-400'
+          }`}
+        >
+          Wireframe
+        </button>
+
         <button
           type="button"
           onClick={onSavePng}
-          className="ml-2 px-2 py-0.5 bg-emerald-700/80 hover:bg-emerald-600 text-white rounded cursor-pointer font-sans text-[10px]"
+          className="ml-2 px-2 py-0.5 bg-emerald-700/80 hover:bg-emerald-600 text-white rounded cursor-pointer font-sans text-[10px] font-semibold"
         >
           Save PNG
         </button>
       </div>
-    );
-  };
-}
+    )
+  : null;
 
 interface CreaturePreviewCanvasProps {
   creatureId?: string;
@@ -212,6 +270,9 @@ export const CreaturePreviewCanvas: React.FC<CreaturePreviewCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [devTier, setDevTier] = useState<'auto' | DetailTier>('auto');
   const [devView, setDevView] = useState<'full' | 'head' | 'wing'>('full');
+  const [devLook, setDevLook] = useState<LookName>('menacing');
+  const [wireframe, setWireframe] = useState<boolean>(false);
+  const [silhouette, setSilhouette] = useState<boolean>(false);
 
   const isModeled = useMemo(() => {
     return Boolean(creatureId && hasRecipe(creatureId));
@@ -232,7 +293,7 @@ export const CreaturePreviewCanvas: React.FC<CreaturePreviewCanvasProps> = ({
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${recipe.id}-${effectiveTier}-menacing.png`;
+      link.download = `${recipe.id}-${effectiveTier}-${devLook}.png`;
       link.click();
       URL.revokeObjectURL(url);
     }, 'image/png');
@@ -244,13 +305,19 @@ export const CreaturePreviewCanvas: React.FC<CreaturePreviewCanvasProps> = ({
       className={`relative rounded-xl overflow-hidden bg-gradient-to-b from-[#0c0d12] via-[#090a0e] to-[#06070a] border border-[#c5a059]/20 shadow-inner ${className}`}
       aria-label={`3D preview for ${creatureName}`}
     >
-      {/* Dev-only controls: Tier Selector, View Selector, Save PNG */}
-      {DevControlsComponent && (
-        <DevControlsComponent
+      {/* Dev-only controls: Tier Selector, View Selector, Look, Silhouette, Wireframe, Save PNG */}
+      {import.meta.env.DEV && DevControls && (
+        <DevControls
           devTier={devTier}
           setDevTier={setDevTier}
           devView={devView}
           setDevView={setDevView}
+          devLook={devLook}
+          setDevLook={setDevLook}
+          wireframe={wireframe}
+          setWireframe={setWireframe}
+          silhouette={silhouette}
+          setSilhouette={setSilhouette}
           recipe={recipe}
           onSavePng={handleSavePng}
         />
@@ -265,11 +332,29 @@ export const CreaturePreviewCanvas: React.FC<CreaturePreviewCanvasProps> = ({
               powerPreference: 'low-power',
               preserveDrawingBuffer: Boolean(import.meta.env.DEV),
             }}
-            onCreated={({ gl }) => {
+            onCreated={({ gl, scene }) => {
               gl.outputColorSpace = THREE.SRGBColorSpace;
+              (scene as any).environmentIntensity = 0.35;
             }}
           >
             <CameraViewRig view={devView} viewpoints={recipe.viewpoints} />
+            <Environment frames={1} resolution={256} environmentIntensity={0.35}>
+              <Lightformer
+                form="rect"
+                intensity={0.5}
+                color="#c0d8f0"
+                position={[0, 10, 0]}
+                scale={[12, 12, 1]}
+                rotation={[Math.PI / 2, 0, 0]}
+              />
+              <Lightformer
+                form="rect"
+                intensity={0.6}
+                color="#f5c070"
+                position={[0, -2, -8]}
+                scale={[10, 2, 1]}
+              />
+            </Environment>
             <ambientLight intensity={0.6} />
             <directionalLight position={[4, 6, 5]} intensity={1.5} color="#f5eedc" />
             <directionalLight position={[-4, -2, -3]} intensity={0.6} color="#5577aa" />
@@ -282,6 +367,8 @@ export const CreaturePreviewCanvas: React.FC<CreaturePreviewCanvasProps> = ({
               color={color}
               accentColor={accentColor}
               detailLevel={effectiveTier}
+              wireframe={wireframe}
+              silhouetteMode={silhouette}
             />
 
             {/* Menacing Variant (ferocity 5) */}
@@ -292,6 +379,8 @@ export const CreaturePreviewCanvas: React.FC<CreaturePreviewCanvasProps> = ({
               color={color}
               accentColor={accentColor}
               detailLevel={effectiveTier}
+              wireframe={wireframe}
+              silhouetteMode={silhouette}
             />
 
             {/* Ferocious Variant (ferocity 9) */}
@@ -302,6 +391,8 @@ export const CreaturePreviewCanvas: React.FC<CreaturePreviewCanvasProps> = ({
               color={color}
               accentColor={accentColor}
               detailLevel={effectiveTier}
+              wireframe={wireframe}
+              silhouetteMode={silhouette}
             />
           </Canvas>
 
