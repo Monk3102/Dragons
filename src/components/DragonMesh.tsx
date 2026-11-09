@@ -25,11 +25,11 @@ export const DragonMesh: React.FC<DragonMeshProps> = ({
   // Animated refs for smooth damping transition over ~1s (lambda around 3)
   // If newly spawned (< 5s ago), start animated scale at 5% of target
   const isNewlySpawned = useMemo(() => {
-    const createdStr = (dragon as any).createdAt;
+    const createdStr = dragon.createdAt;
     if (!createdStr) return false;
     const time = Date.parse(createdStr);
     return !isNaN(time) && Date.now() - time < 5000;
-  }, [dragon.id, (dragon as any).createdAt]);
+  }, [dragon.id, dragon.createdAt]);
 
   const currentScale = useRef<number>(isNewlySpawned ? dragon.scale * 0.05 : dragon.scale);
   const currentPosX = useRef<number>(dragon.position[0]);
@@ -38,7 +38,7 @@ export const DragonMesh: React.FC<DragonMeshProps> = ({
   const currentBobSpeed = useRef<number>(dragon.bobbingSpeed);
   const currentBobAmp = useRef<number>(dragon.bobbingAmplitude);
 
-  const baseGlow = (dragon as any).coreGlowStrength ?? 1.6;
+  const baseGlow = (dragon as { coreGlowStrength?: number }).coreGlowStrength ?? 1.6;
   const currentGlowStrength = useRef<number>(baseGlow);
 
   // Reusable materials memoized by monster ID so dial changes do not recreate them
@@ -104,7 +104,7 @@ export const DragonMesh: React.FC<DragonMeshProps> = ({
     currentBobAmp.current = THREE.MathUtils.damp(currentBobAmp.current, dragon.bobbingAmplitude, lambda, delta);
 
     const glowMultiplier = isSelected ? 2.2 : isHovered ? 1.6 : 1.0;
-    const targetGlow = ((dragon as any).coreGlowStrength ?? 1.6) * glowMultiplier;
+    const targetGlow = baseGlow * glowMultiplier;
     currentGlowStrength.current = THREE.MathUtils.damp(currentGlowStrength.current, targetGlow, lambda, delta);
 
     // Apply animated scale

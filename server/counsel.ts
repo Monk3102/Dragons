@@ -1,5 +1,6 @@
 import { Express, Request, Response } from 'express';
 import { GoogleGenAI } from '@google/genai';
+import fs from 'fs';
 import { ARCHETYPE_CATALOGUE } from '../src/data/archetypesCatalogue';
 import { Dial } from '../src/types';
 
@@ -36,6 +37,50 @@ export type ValidateCounselResult =
   | { ok: false; error: string };
 
 const ARCHETYPE_SET = new Set(ARCHETYPE_CATALOGUE.map((a) => a.id));
+
+export const ALL_CREATURE_TYPE_IDS = ARCHETYPE_CATALOGUE.map((a) => a.id);
+
+function logServerEvent(line: string) {
+  console.log(line);
+  try {
+    fs.appendFileSync('/tmp/counsel-server.log', line + '\n');
+  } catch {
+    // ignore filesystem write errors
+  }
+}
+
+export const COUNSEL_RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    reply: { type: 'string' },
+    crisis: { type: 'boolean' },
+    proposal: {
+      type: 'object',
+      nullable: true,
+      properties: {
+        creatureTypeId: {
+          type: 'string',
+          enum: ALL_CREATURE_TYPE_IDS,
+        },
+        name: { type: 'string' },
+        problem: { type: 'string' },
+        size: { type: 'integer' },
+        distance: { type: 'integer' },
+        ferocity: { type: 'integer' },
+        reasoning: { type: 'string' },
+        dialReasons: {
+          type: 'object',
+          properties: {
+            size: { type: 'string' },
+            distance: { type: 'string' },
+            ferocity: { type: 'string' },
+          },
+        },
+      },
+    },
+  },
+  required: ['reply', 'crisis'],
+} as const;
 
 // In-memory rate limiter: max 20 requests per minute per IP
 const ipRateLimitMap = new Map<string, number[]>();
@@ -134,7 +179,7 @@ CRITICAL BOUNDARIES & INSTRUCTIONS:
 1. Do NOT give advice, solutions, action plans or exercises.
 2. Do NOT diagnose, and make NO medical or psychological claims. You only listen, reflect, and name the creature.
 3. Keep replies under 90 words.
-4. When the user has described their problem enough, propose one creature archetype from the catalogue list below. Propose ONLY creature ids from this list. If nothing fits well, choose the closest one and explain your reasoning.
+4. When the user has described their problem enough, propose one creature archetype from the catalogue list below. Propose ONLY creature ids from this list. creatureTypeId must be EXACTLY one of the ids in the list. Never invent an id. Abstract concepts such as perfectionism, anxiety or procrastination are not creatures. Pick the closest creature from the list and explain the match in reasoning.
 5. Suggest starting dial values (integers 1 to 10):
    - size: how much impact the problem has on the user's life (1 = tiny, 10 = huge)
    - distance: how near the problem feels (1 = very near, 10 = very far, based on gut feeling)
@@ -180,7 +225,7 @@ export function parseCounselResponse(
 ): CounselResponseParsed {
   const fallbackReply = 'I lost the thread for a moment. Could you say that again?';
 
-  let parsed: any;
+  let parsed: unknown;
   try {
     // Strip markdown code fences if model wrapped response in ```json ... ```
     let cleanJson = rawText.trim();
@@ -204,18 +249,19 @@ export function parseCounselResponse(
     };
   }
 
+  const parsedObj = parsed as Record<string, unknown>;
   const reply =
-    typeof parsed.reply === 'string' && parsed.reply.trim() !== ''
-      ? parsed.reply.trim()
+    typeof parsedObj.reply === 'string' && parsedObj.reply.trim() !== ''
+      ? parsedObj.reply.trim()
       : fallbackReply;
 
-  const crisis = Boolean(parsed.crisis);
+  const crisis = Boolean(parsedObj.crisis);
 
   // Proposal must be dropped if:
   // - crisis is true
   // - userMessageCount < 2
   // - proposal is not an object
-  if (crisis || userMessageCount < 2 || !parsed.proposal || typeof parsed.proposal !== 'object') {
+  if (crisis || userMessageCount < 2 || !parsedObj.proposal || typeof parsedObj.proposal !== 'object') {
     return {
       reply,
       crisis,
@@ -223,11 +269,12 @@ export function parseCounselResponse(
     };
   }
 
-  const p = parsed.proposal;
+  const p = parsedObj.proposal as Record<string, unknown>;
   const creatureTypeId = typeof p.creatureTypeId === 'string' ? p.creatureTypeId.trim() : '';
 
   // Drop proposal if creatureTypeId is not in canonical catalogue
   if (!ARCHETYPE_SET.has(creatureTypeId)) {
+    logServerEvent('dropped proposal: unknown creature id');
     return {
       reply,
       crisis,
@@ -262,7 +309,7 @@ export function parseCounselResponse(
   const problem = rawProblem.slice(0, 300);
   const reasoning = typeof p.reasoning === 'string' ? p.reasoning.trim().slice(0, 200) : '';
 
-  const rawDialReasons = p.dialReasons && typeof p.dialReasons === 'object' ? p.dialReasons : {};
+  const rawDialReasons = p.dialReasons && typeof p.dialReasons === 'object' ? (p.dialReasons as Record<string, unknown>) : {};
   const dialReasons: DialReasons = {
     size: typeof rawDialReasons.size === 'string' ? rawDialReasons.size.trim().slice(0, 200) : '',
     distance: typeof rawDialReasons.distance === 'string' ? rawDialReasons.distance.trim().slice(0, 200) : '',
@@ -317,84 +364,135 @@ export function registerCounselRoutes(app: Express, ai: GoogleGenAI) {
         parts: [{ text: m.content }],
       }));
 
-      const modelName = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+      // Model fallback chain: GEMINI_MODEL (if set), then 'gemini-3.1-flash-lite', then 'gemini-flash-latest'
+      const configuredModel = process.env.GEMINI_MODEL ? process.env.GEMINI_MODEL.trim() : '';
+      const candidateModels = [configuredModel, 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
+      const modelChain = Array.from(new Set(candidateModels.filter((m): m is string => Boolean(m))));
+
       const systemInstruction = buildCounselSystemPrompt();
 
-      // Schema for structured JSON generation
-      const responseSchema = {
-        type: 'object',
-        properties: {
-          reply: { type: 'string' },
-          crisis: { type: 'boolean' },
-          proposal: {
-            type: 'object',
-            nullable: true,
-            properties: {
-              creatureTypeId: { type: 'string' },
-              name: { type: 'string' },
-              problem: { type: 'string' },
-              size: { type: 'integer' },
-              distance: { type: 'integer' },
-              ferocity: { type: 'integer' },
-              reasoning: { type: 'string' },
-              dialReasons: {
-                type: 'object',
-                properties: {
-                  size: { type: 'string' },
-                  distance: { type: 'string' },
-                  ferocity: { type: 'string' },
-                },
-              },
-            },
-          },
-        },
-        required: ['reply', 'crisis'],
-      };
+      const requestStartTime = Date.now();
+      const OVERALL_TIMEOUT_MS = 25000;
+      const ATTEMPT_TIMEOUT_MS = 12000;
 
-      // Query Gemini with 1 retry on 429 or 503
       let rawResponseText = '';
       let lastErr: unknown = null;
 
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          let response;
-          try {
-            response = await ai.models.generateContent({
-              model: modelName,
-              contents,
-              config: {
-                systemInstruction,
-                temperature: 0.7,
-                responseMimeType: 'application/json',
-                responseSchema,
-              },
-            });
-          } catch (schemaErr: any) {
-            // If the SDK or model rejects responseSchema, fall back to responseMimeType only
-            response = await ai.models.generateContent({
-              model: modelName,
-              contents,
-              config: {
-                systemInstruction,
-                temperature: 0.7,
-                responseMimeType: 'application/json',
-              },
-            });
-          }
+      for (const modelName of modelChain) {
+        const elapsedSoFar = Date.now() - requestStartTime;
+        const overallRemaining = OVERALL_TIMEOUT_MS - elapsedSoFar;
+        if (overallRemaining <= 0) {
+          // Overall deadline exhausted, skip remaining models
+          break;
+        }
 
+        const attemptTimeout = Math.min(ATTEMPT_TIMEOUT_MS, overallRemaining);
+        const controller = new AbortController();
+        let isTimedOut = false;
+
+        const timer = setTimeout(() => {
+          isTimedOut = true;
+          controller.abort('timeout');
+        }, attemptTimeout);
+
+        try {
+          const callPromise = (async () => {
+            try {
+              return await ai.models.generateContent({
+                model: modelName,
+                contents,
+                config: {
+                  systemInstruction,
+                  temperature: 0.7,
+                  responseMimeType: 'application/json',
+                  responseSchema: COUNSEL_RESPONSE_SCHEMA,
+                  abortSignal: controller.signal,
+                },
+              });
+            } catch (schemaErr: unknown) {
+              if (controller.signal.aborted) throw schemaErr;
+              // If the SDK rejects the enum, keep the existing fallback (JSON mime type only)
+              return await ai.models.generateContent({
+                model: modelName,
+                contents,
+                config: {
+                  systemInstruction,
+                  temperature: 0.7,
+                  responseMimeType: 'application/json',
+                  abortSignal: controller.signal,
+                },
+              });
+            }
+          })();
+
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            if (controller.signal.aborted) {
+              reject(new Error('timeout'));
+              return;
+            }
+            controller.signal.addEventListener('abort', () => {
+              reject(new Error('timeout'));
+            });
+          });
+
+          const response = await Promise.race([callPromise, timeoutPromise]);
+          clearTimeout(timer);
+          logServerEvent(`[Counsel Model] ${modelName}: ok`);
           rawResponseText = response.text || '';
           lastErr = null;
           break;
         } catch (err: unknown) {
+          clearTimeout(timer);
+          controller.abort();
           lastErr = err;
-          const msg = err instanceof Error ? err.message : String(err);
-          const isTransient =
-            msg.includes('503') || msg.includes('429') || msg.includes('UNAVAILABLE') || msg.includes('high demand');
-          if (!isTransient || attempt === 1) {
+
+          const errMsg = err instanceof Error ? err.message : String(err);
+          const isTimeout = isTimedOut || errMsg === 'timeout' || controller.signal.aborted;
+
+          let errCode = 'error';
+          if (isTimeout) {
+            errCode = 'timeout';
+          } else {
+            const errObj = err as Record<string, unknown> | null;
+            const statusVal = errObj && (errObj.status || errObj.code || (errObj.error as Record<string, unknown> | undefined)?.code);
+            if (statusVal) {
+              errCode = String(statusVal);
+            } else if (errMsg.includes('504') || errMsg.includes('DEADLINE_EXCEEDED')) {
+              errCode = '504';
+            } else if (errMsg.includes('503') || errMsg.includes('UNAVAILABLE')) {
+              errCode = '503';
+            } else if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+              errCode = '429';
+            } else if (errMsg.includes('400')) {
+              errCode = '400';
+            } else if (errMsg.includes('401') || errMsg.includes('API_KEY_INVALID')) {
+              errCode = '401';
+            } else if (errMsg.includes('403')) {
+              errCode = '403';
+            } else if (errMsg.includes('404')) {
+              errCode = '404';
+            }
+          }
+
+          // Log ONE line per attempt on the server: the model name and the result (ok, timeout or error code). Never log message text.
+          const loggedResult = isTimeout ? 'timeout' : errCode;
+          logServerEvent(`[Counsel Model] ${modelName}: ${loggedResult}`);
+
+          const isRetryable =
+            isTimeout ||
+            errCode === '429' ||
+            errCode === '503' ||
+            errCode === '504' ||
+            errMsg.includes('429') ||
+            errMsg.includes('503') ||
+            errMsg.includes('504') ||
+            errMsg.includes('DEADLINE_EXCEEDED') ||
+            errMsg.includes('UNAVAILABLE');
+
+          if (!isRetryable) {
+            // Stop immediately and return friendly error
             break;
           }
-          // Brief pause before retry
-          await new Promise((r) => setTimeout(r, 800));
         }
       }
 
@@ -405,7 +503,7 @@ export function registerCounselRoutes(app: Express, ai: GoogleGenAI) {
       const parsedResult = parseCounselResponse(rawResponseText, userMessageCount);
       return res.json(parsedResult);
     } catch (error: unknown) {
-      console.error('[Counsel Route] Error:', error);
+      console.error('[Counsel Route] Error processing counsel request');
       const rawMsg = error instanceof Error ? error.message : '';
       let clientMsg = 'Unable to receive counsel at this moment. Please try again.';
 

@@ -76,6 +76,7 @@ export interface DragonProblem extends MonsterRecord {
   floatingHeight: number;
   bobbingSpeed: number;
   bobbingAmplitude: number;
+  createdAt?: string;
 }
 
 export type NoteStatus = 'Formidable' | 'Acknowledged' | 'Weakened' | 'Transmuted';

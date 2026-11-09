@@ -2,6 +2,7 @@ import {
   validateCounselRequest,
   buildCounselSystemPrompt,
   parseCounselResponse,
+  COUNSEL_RESPONSE_SCHEMA,
 } from './counsel';
 import { ARCHETYPE_CATALOGUE } from '../src/data/archetypesCatalogue';
 
@@ -228,6 +229,28 @@ runTest('parseCounselResponse: a valid response passes through', () => {
     parsed.proposal.reasoning === 'Grows heavier each day it is neglected.' &&
     parsed.proposal.dialReasons.size === 'Significantly impacts daily focus'
   );
+});
+
+// 9. the schema enum has exactly 42 entries and they equal the catalogue ids
+runTest('the schema enum has exactly 42 entries and they equal the catalogue ids', () => {
+  const schemaEnum = COUNSEL_RESPONSE_SCHEMA.properties.proposal.properties.creatureTypeId.enum;
+  if (!Array.isArray(schemaEnum)) return false;
+  if (schemaEnum.length !== 42) return false;
+  if (ARCHETYPE_CATALOGUE.length !== 42) return false;
+
+  for (let i = 0; i < ARCHETYPE_CATALOGUE.length; i++) {
+    if (schemaEnum[i] !== ARCHETYPE_CATALOGUE[i].id) {
+      console.error(`Mismatch at index ${i}: ${schemaEnum[i]} !== ${ARCHETYPE_CATALOGUE[i].id}`);
+      return false;
+    }
+  }
+  return true;
+});
+
+// 10. the system prompt contains the "never invent an id" sentence
+runTest('the system prompt contains the "never invent an id" sentence', () => {
+  const prompt = buildCounselSystemPrompt();
+  return prompt.includes('Never invent an id.');
 });
 
 console.log(`\nResults: ${passedCount} passed, ${failedCount} failed.`);

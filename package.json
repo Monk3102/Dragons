@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "check": "tsx server/counsel.check.ts && tsx src/store/monsterLogic.check.ts && tsx src/scene/dialMapping.check.ts"
+    "check": "tsx server/counsel.check.ts && tsx src/store/monsterLogic.check.ts && tsx src/scene/dialMapping.check.ts && tsx src/utils/journeyFormat.check.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

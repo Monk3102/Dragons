@@ -3,7 +3,6 @@ import { DragonProblem } from './types';
 import { Scene } from './components/Scene';
 import { Navigation } from './components/Navigation';
 import { Dock } from './components/Dock';
-import { DragonOverlay } from './components/DragonOverlay';
 import { voidAudio } from './utils/audioAmbience';
 import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { useMonsters } from './store/monsterStore';
@@ -18,9 +17,13 @@ const CounselView = React.lazy(() =>
   import('./components/CounselView').then((m) => ({ default: m.CounselView }))
 );
 
+const DragonOverlay = React.lazy(() =>
+  import('./components/DragonOverlay').then((m) => ({ default: m.DragonOverlay }))
+);
+
 // Dynamic import strictly in development mode for zero production bundle footprint
 const DevDialPanel = import.meta.env.DEV
-  ? React.lazy(new Function("return import('./components/DevDialPanel')") as any)
+  ? React.lazy(new Function("return import('./components/DevDialPanel')") as () => Promise<{ default: React.ComponentType<{ onClose: () => void }> }>)
   : null;
 
 export default function App() {
@@ -32,9 +35,10 @@ export default function App() {
     const layout = layoutMonsters(alive);
     return alive.map((m) => {
       const pos = layout.get(m.id)!;
-      const d = monsterToDragonProblem(m, pos);
-      (d as any).createdAt = m.createdAt;
-      return d;
+      return {
+        ...monsterToDragonProblem(m, pos),
+        createdAt: m.createdAt,
+      };
     });
   }, [monsters]);
 
@@ -119,11 +123,13 @@ export default function App() {
 
       {/* Selected Dragon Detail Overlay with Dials block */}
       {selectedDragon && (
-        <DragonOverlay
-          dragon={selectedDragon}
-          monster={selectedMonster}
-          onClose={handleDeselectDragon}
-        />
+        <React.Suspense fallback={null}>
+          <DragonOverlay
+            dragon={selectedDragon}
+            monster={selectedMonster}
+            onClose={handleDeselectDragon}
+          />
+        </React.Suspense>
       )}
 
       {/* Camera & Perspective Dock */}
