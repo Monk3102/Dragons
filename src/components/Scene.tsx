@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useSyncExternalStore } from 'react';
 import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { Environment, Lightformer } from '@react-three/drei';
@@ -7,6 +7,7 @@ import { Character } from './Character';
 import { DragonMesh } from './DragonMesh';
 import { VoidEnvironment } from './VoidEnvironment';
 import { CameraController } from './CameraController';
+import { subscribeQuality, getQualitySnapshot } from '../config/quality';
 
 const PerfProbe = import.meta.env.DEV
   ? React.lazy(
@@ -26,7 +27,7 @@ interface SceneProps {
   isActive?: boolean;
 }
 
-export const Scene: React.FC<SceneProps> = ({
+export const Scene: React.FC<SceneProps> = React.memo(({
   dragons,
   selectedDragonId,
   onSelectDragon,
@@ -35,13 +36,16 @@ export const Scene: React.FC<SceneProps> = ({
   onClearPreset,
   isActive = true,
 }) => {
+  const quality = useSyncExternalStore(subscribeQuality, getQualitySnapshot, getQualitySnapshot);
+  const isLowPower = quality === 'low-power';
   const selectedDragon = dragons.find((d) => d.id === selectedDragonId) || null;
 
   return (
     <div className="absolute inset-0 w-full h-full bg-[#07090e] overflow-hidden select-none">
       <Canvas
         frameloop={isActive ? 'always' : 'never'}
-        shadows
+        shadows={!isLowPower}
+        dpr={isLowPower ? 1 : [1, 2]}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
@@ -163,4 +167,6 @@ export const Scene: React.FC<SceneProps> = ({
       </Canvas>
     </div>
   );
-};
+});
+
+Scene.displayName = 'Scene';

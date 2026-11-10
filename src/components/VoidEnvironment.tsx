@@ -1,13 +1,16 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useSyncExternalStore } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
+import { subscribeQuality, getQualitySnapshot } from '../config/quality';
 
 export const VoidEnvironment: React.FC = () => {
   const particlesRef = useRef<THREE.Points>(null);
+  const quality = useSyncExternalStore(subscribeQuality, getQualitySnapshot, getQualitySnapshot);
+  const isLowPower = quality === 'low-power';
 
-  // Generate particulate dust motes drifting in the void
+  // Generate particulate dust motes drifting in the void (halved in low-power)
   const [particlesPos, particlesSpeeds] = useMemo(() => {
-    const count = 350;
+    const count = isLowPower ? 175 : 350;
     const positions = new Float32Array(count * 3);
     const speeds = new Float32Array(count);
 
@@ -21,7 +24,7 @@ export const VoidEnvironment: React.FC = () => {
       speeds[i] = 0.2 + Math.random() * 0.5;
     }
     return [positions, speeds];
-  }, []);
+  }, [isLowPower]);
 
   // Suspended floating monolith shards in the surrounding void
   const monoliths = useMemo(() => {

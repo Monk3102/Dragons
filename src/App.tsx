@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { DragonProblem, Monster } from './types';
-import { Scene } from './components/Scene';
 import { Navigation } from './components/Navigation';
 import { Dock } from './components/Dock';
 import { voidAudio } from './utils/audioAmbience';
@@ -10,6 +9,19 @@ import { layoutMonsters } from './scene/dialMapping';
 import { monsterToDragonProblem } from './scene/monsterVisuals';
 import { Toast, ToastAction } from './components/Toast';
 import { shouldRemind, daysSinceExport, getLastExportTime } from './utils/backupReminder';
+
+const Scene = React.lazy(() =>
+  import('./components/Scene').then((m) => ({ default: m.Scene }))
+);
+
+const SceneLoadingFallback: React.FC = () => (
+  <div className="absolute inset-0 w-full h-full bg-[#07090e] flex flex-col items-center justify-center select-none z-0">
+    <div className="text-2xl font-bold font-['Cinzel'] tracking-widest text-slate-100 mb-4 animate-pulse">
+      DRACO ANIMI
+    </div>
+    <div className="w-32 h-[1px] bg-gradient-to-r from-transparent via-[#c5a059] to-transparent animate-pulse" />
+  </div>
+);
 
 const ExploreView = React.lazy(() =>
   import('./components/ExploreView').then((m) => ({ default: m.ExploreView }))
@@ -163,18 +175,26 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedDragonId, activeSection, handleDeselectDragon]);
 
+  const handleClearPreset = useCallback(() => {
+    setCameraPreset(null);
+  }, []);
+
+  const isSceneActive = activeSection !== 'counsel' && activeSection !== 'wall';
+
   return (
     <div className="relative w-screen h-screen bg-[#07090e] overflow-hidden font-sans text-slate-100">
-      {/* 3D WebGL Canvas Layer (rendering paused while in counsel or wall view to conserve GPU) */}
-      <Scene
-        dragons={sceneDragons}
-        selectedDragonId={selectedDragonId}
-        onSelectDragon={handleSelectDragon}
-        onDeselectDragon={handleDeselectDragon}
-        cameraPreset={cameraPreset}
-        onClearPreset={() => setCameraPreset(null)}
-        isActive={activeSection !== 'counsel' && activeSection !== 'wall'}
-      />
+      {/* 3D WebGL Canvas Layer (lazy-loaded with instant shell fallback, paused during counsel/wall) */}
+      <Suspense fallback={<SceneLoadingFallback />}>
+        <Scene
+          dragons={sceneDragons}
+          selectedDragonId={selectedDragonId}
+          onSelectDragon={handleSelectDragon}
+          onDeselectDragon={handleDeselectDragon}
+          cameraPreset={cameraPreset}
+          onClearPreset={handleClearPreset}
+          isActive={isSceneActive}
+        />
+      </Suspense>
 
       {/* Top Navigation Bar with World Space, Counsel, Bestiary, and Backup & Archive */}
       <Navigation

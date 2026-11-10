@@ -6,14 +6,15 @@ import { CreatureBody } from '../creatures/engine';
 import { getRecipe } from '../creatures/registry';
 import { DetailTier } from '../creatures/types';
 
-const DISTANCE_ULTRA_THRESHOLD = 40;
-const DISTANCE_HIGH_THRESHOLD = 90;
-const HYSTERESIS_BUFFER = 4;
-const CHECK_FRAME_INTERVAL = 15;
-const MAX_ULTRA_NEAREST = 2;
-
-// Shared distance tracker to determine top closest creatures to camera
-const monsterDistances = new Map<string, number>();
+import {
+  CHECK_FRAME_INTERVAL,
+  recordMonsterDistance,
+  unregisterMonster,
+  updateNearestUltraCache,
+  isMonsterInUltraCache,
+  evaluateTier,
+} from '../scene/tierSelect';
+import { getQualitySnapshot } from '../config/quality';
 
 let devFlagsInstance: { forcedTier: null | 'ultra' | 'high' | 'low'; benchmarkRunning: boolean; tierCounts: { ultra: number; high: number; low: number } } | null = null;
 if (import.meta.env.DEV) {
@@ -64,7 +65,7 @@ export const DragonMesh: React.FC<DragonMeshProps> = ({
     }
 
     return () => {
-      monsterDistances.delete(dragon.id);
+      unregisterMonster(dragon.id);
       if (import.meta.env.DEV) {
         const lastTier = prevTierRef.current;
         if (lastTier && devFlagsInstance) {
@@ -113,34 +114,26 @@ export const DragonMesh: React.FC<DragonMeshProps> = ({
         }
       } else {
         const dist = state.camera.position.distanceTo(rootRef.current.position);
-        monsterDistances.set(dragon.id, dist);
+        recordMonsterDistance(dragon.id, dist);
 
-        // Determine top 2 closest creatures
-        const sortedEntries = Array.from(monsterDistances.entries()).sort((a, b) => a[1] - b[1]);
-        const isTopTwo = sortedEntries.slice(0, MAX_ULTRA_NEAREST).some((entry) => entry[0] === dragon.id);
+        // Update ultra candidates cache once per frame across all monsters
+        updateNearestUltraCache(state.clock.elapsedTime | 0);
+        const isTopCandidate = isMonsterInUltraCache(dragon.id);
+        const isLowPower = getQualitySnapshot() === 'low-power';
 
-        if (isSelected) {
-          if (detailLevel !== 'ultra') setDetailLevel('ultra');
-        } else {
-          if (detailLevel === 'ultra') {
-            // Drop from ultra to high if neither selected nor qualifying within hysteresis
-            if (!isTopTwo || dist > DISTANCE_ULTRA_THRESHOLD + HYSTERESIS_BUFFER) {
-              setDetailLevel(dist > DISTANCE_HIGH_THRESHOLD + HYSTERESIS_BUFFER ? 'low' : 'high');
-            }
-          } else if (detailLevel === 'high') {
-            if (isTopTwo && dist < DISTANCE_ULTRA_THRESHOLD - HYSTERESIS_BUFFER) {
-              setDetailLevel('ultra');
-            } else if (dist > DISTANCE_HIGH_THRESHOLD + HYSTERESIS_BUFFER) {
-              setDetailLevel('low');
-            }
-          } else {
-            // current detailLevel === 'low'
-            if (isTopTwo && dist < DISTANCE_ULTRA_THRESHOLD - HYSTERESIS_BUFFER) {
-              setDetailLevel('ultra');
-            } else if (dist < DISTANCE_HIGH_THRESHOLD - HYSTERESIS_BUFFER) {
-              setDetailLevel('high');
-            }
-          }
+        const nextTier = evaluateTier(
+          detailLevel,
+          dist,
+          isTopCandidate,
+          isSelected,
+          undefined,
+          undefined,
+          undefined,
+          isLowPower
+        );
+
+        if (detailLevel !== nextTier) {
+          setDetailLevel(nextTier);
         }
       }
     }

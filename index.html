@@ -11,10 +11,56 @@
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      #root:empty {
+        background-color: #07090e;
+      }
+      .instant-shell {
+        position: fixed;
+        inset: 0;
+        background-color: #07090e;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #f1f5f9;
+        user-select: none;
+      }
+      .instant-title {
+        font-family: 'Cinzel', serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        margin-bottom: 1rem;
+        color: #f8fafc;
+      }
+      .instant-line {
+        width: 8rem;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #c5a059, transparent);
+        animation: pulseLine 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      @keyframes pulseLine {
+        0%, 100% { opacity: 0.3; transform: scaleX(0.7); }
+        50% { opacity: 1; transform: scaleX(1.1); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .instant-line {
+          animation: none;
+          opacity: 0.7;
+          transform: none;
+        }
+      }
+    </style>
   </head>
-  <body>
-    <div id="root"></div>
+  <body style="margin: 0; background-color: #07090e;">
+    <div id="root">
+      <div class="instant-shell">
+        <div class="instant-title">DRACO ANIMI</div>
+        <div class="instant-line"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

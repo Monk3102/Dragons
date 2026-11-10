@@ -1,5 +1,6 @@
-import React from 'react';
-import { Volume2, VolumeX, Database } from 'lucide-react';
+import React, { useSyncExternalStore } from 'react';
+import { Volume2, VolumeX, Database, Zap, ZapOff } from 'lucide-react';
+import { subscribeQuality, getQualitySnapshot, setQuality } from '../config/quality';
 
 interface NavigationProps {
   activeSection: 'world' | 'explore' | 'counsel' | 'wall';
@@ -24,6 +25,9 @@ export const Navigation: React.FC<NavigationProps> = ({
   shouldBackupReminder = false,
   backupTooltip,
 }) => {
+  const quality = useSyncExternalStore(subscribeQuality, getQualitySnapshot, getQualitySnapshot);
+  const isLowPower = quality === 'low-power';
+
   return (
     <header className="fixed top-0 left-0 right-0 z-40 pointer-events-auto">
       <div className="flex items-center justify-between gap-8 px-6 py-3.5 bg-gradient-to-b from-[#07090e]/95 via-[#07090e]/85 to-transparent backdrop-blur-sm border-b border-white/[0.06]">
@@ -151,8 +155,29 @@ export const Navigation: React.FC<NavigationProps> = ({
           )}
         </nav>
 
-        {/* Zone 3: Local Data Backup & Audio Control */}
+        {/* Zone 3: Quality Mode, Local Data Backup & Audio Control */}
         <div className="flex items-center gap-2.5 shrink-0">
+          {/* Low-Power Mode Toggle Button */}
+          <button
+            onClick={() => setQuality(isLowPower ? 'auto' : 'low-power')}
+            aria-pressed={isLowPower}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono rounded-lg border transition-all cursor-pointer ${
+              isLowPower
+                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                : 'bg-white/[0.03] text-slate-400 border-white/10 hover:border-white/20 hover:text-slate-200'
+            }`}
+            title={isLowPower ? 'Low-power mode active (DPR 1, shadows off, high tier cap)' : 'Switch to low-power mode to reduce GPU power usage'}
+          >
+            {isLowPower ? (
+              <ZapOff className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <Zap className="w-3.5 h-3.5 text-slate-400" />
+            )}
+            <span className="hidden sm:inline">
+              {isLowPower ? 'Low Power' : 'Auto'}
+            </span>
+          </button>
+
           {onOpenBackup && (
             <button
               onClick={onOpenBackup}
